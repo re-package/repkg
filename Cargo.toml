@@ -1,2 +1,2 @@
 [workspace]
-members = ["repkg"]
+members = ["repkg", "repkg-build"]
