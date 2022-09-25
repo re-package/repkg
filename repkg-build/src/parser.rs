@@ -41,9 +41,9 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
 }
 
 fn rule<'a>() -> Parser<'a, u8, Rule> {
-    (spaced(id()) - sym(b'{') - space_newline() + spaced_newline(command()).repeat(0..)
-        - space()
-        - sym(b'}'))
+    (spaced(id())
+        + ((sym(b'{') * spaced_newline(command()).repeat(0..) - space() - sym(b'}'))
+            | (sym(b':') * spaced(command()).map(|x| vec![x]))))
     .map(|(name, cmds)| Rule { name, cmds })
 }
 
@@ -95,6 +95,8 @@ fn space<'a>() -> Parser<'a, u8, ()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::Command;
+
     #[test]
     fn command() {
         let program = b"cargo test \"build bob\" run";
@@ -116,6 +118,21 @@ mod tests {
 
         assert!(rule.name == "build".into());
         assert!(rule.cmds.len() == 2);
+    }
+
+    #[test]
+    fn short_rule() {
+        let program = b"build : cargo build";
+        let rule = super::rule().parse(program).unwrap();
+
+        assert!(rule.name == "build".into());
+        assert!(
+            rule.cmds
+                == vec![Command {
+                    program: "cargo".to_string(),
+                    args: vec!["build".to_string()]
+                }]
+        );
     }
 
     #[test]

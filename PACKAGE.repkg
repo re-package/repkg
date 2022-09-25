@@ -4,10 +4,26 @@ project repkg in "repkg" {
     build: cargo build --release
 
     test: cargo test
+
+    postInstall {
+
+    }
+
+    dependencies {
+        can-fail repkg install git
+    }
 }
 
 project repkg-build in "repkg-build" {
-    build: cargo build
+    build: cargo build --release
+
+    prePackage {
+        //
+    }
+
+    postPackage {
+
+    }
 }
 
 build: cargo build --release

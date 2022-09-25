@@ -57,7 +57,7 @@ pub struct Program {
     pub imports: Vec<Import>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Command {
     pub program: String,
     pub args: Vec<String>,
