@@ -11,7 +11,6 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
     spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
         .repeat(0..)
         .map(|nodes| {
-            let functions = BTreeMap::new();
             let mut projects = BTreeMap::new();
             let mut imports = vec![];
             let mut rules = BTreeMap::new();
@@ -28,12 +27,7 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
                     }
                 }
             }
-            Program {
-                functions,
-                projects,
-                rules,
-                imports,
-            }
+            Program { projects, rules }
         })
 }
 
@@ -54,7 +48,7 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
 fn rule<'a>() -> Parser<'a, u8, Rule> {
     (spaced(id())
         + ((sym(b'{') * spaced_newline(command()).repeat(0..) - space() - sym(b'}'))
-            | (sym(b':') * spaced(command()).map(|x| vec![x]))))
+            | (space() * sym(b':') * spaced(command()).map(|x| vec![x]))))
     .map(|(name, cmds)| Rule { name, cmds })
 }
 
@@ -198,7 +192,7 @@ mod tests {
             }
         }
         
-        build: cargo build
+        build : cargo build
         
         test {
             cargo nextest run
@@ -207,5 +201,6 @@ mod tests {
         let result = super::parser().parse(program).unwrap();
 
         assert!(result.projects.len() == 2);
+        assert!(result.rules.len() == 2);
     }
 }

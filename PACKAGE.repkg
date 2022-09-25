@@ -4,7 +4,15 @@ project repkg in "repkg" {
     test: cargo test
 
     dependencies {
-        repkg install git
+        #cargo
+    }
+
+    prePackage {
+        #self test
+    }
+
+    postInstall {
+        #self test
     }
 }
 
@@ -12,6 +20,6 @@ project repkg-build in "repkg-build" {
     build: cargo build --release
 }
 
-build: cargo build --release
+build : cargo build --release
 
-test: cargo nextest run
+test : cargo nextest run
