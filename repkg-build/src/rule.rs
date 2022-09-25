@@ -1,8 +1,7 @@
-use crate::{Name, Value};
+use crate::{Command, Name};
 
 #[derive(Debug)]
 pub struct Rule {
     pub name: Name,
-    // Calculate the values in order
-    pub values: Vec<Value>,
+    pub cmds: Vec<Command>,
 }

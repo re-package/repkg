@@ -52,8 +52,13 @@ pub struct FunctionCall {
 
 #[derive(Debug)]
 pub struct Program {
-    // Points to the functions in names
     pub functions: BTreeMap<Name, Function>,
     pub projects: BTreeMap<Name, Project>,
     pub imports: Vec<Import>,
+}
+
+#[derive(Debug)]
+pub struct Command {
+    pub program: String,
+    pub args: Vec<String>,
 }

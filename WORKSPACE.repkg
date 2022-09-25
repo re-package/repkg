@@ -1,0 +1,15 @@
+// This is what it might look like
+
+project repkg in "repkg" {
+    build: cargo build --release
+
+    test: cargo test
+}
+
+project repkg-build in "repkg-build" {
+    build: cargo build
+}
+
+build: cargo build --release
+
+test: cargo nextest run

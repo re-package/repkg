@@ -1,25 +1,28 @@
 use std::collections::BTreeMap;
 
-use pom::{char_class::*, parser::*};
+use pom::{
+    char_class::{self, *},
+    parser::*,
+};
 
-use crate::{rule::Rule, ASTNode, FunctionCall, Import, Name, Program, Project, Value};
+use crate::{rule::Rule, ASTNode, Command, Import, Name, Program, Project};
 
 pub fn parser<'a>() -> Parser<'a, u8, Program> {
-    (space() * project().map(|x| ASTNode::Project(x)))
+    spaced_newline(project().map(|x| ASTNode::Project(x)))
         .repeat(0..)
         .map(|nodes| {
             let functions = BTreeMap::new();
             let mut projects = BTreeMap::new();
             let mut imports: Vec<Import> = vec![];
             for node in nodes {
-                let _ = match node {
+                match node {
                     ASTNode::Project(proj) => {
                         projects.insert(proj.name.to_owned(), proj);
                     }
                     ASTNode::Import(import) => {
                         imports.push(import);
                     }
-                };
+                }
             }
             Program {
                 functions,
@@ -30,54 +33,58 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Project> {
-    (seq(b"project") * space() * id() - space() - sym(b'{') - space()
-        + (space() * rule() - space()).repeat(0..)
+    (seq(b"project") * space() * id() - space() - sym(b'{') - space_newline()
+        + (space_newline() * rule() - space_newline()).repeat(0..)
         - space()
         - sym(b'}'))
     .map(|(name, rules)| Project { name, rules })
-}
-
-fn space<'a>() -> Parser<'a, u8, ()> {
-    one_of(b" \t\r\n").repeat(0..).discard()
 }
 
 fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
     space() * parser - space()
 }
 
-fn statement<'a>() -> Parser<'a, u8, Value> {
-    function_call().map(|x| Value::FunctionCall(x)) - sym(b';')
+fn spaced_newline<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
+    space_newline() * parser - space_newline()
+}
+
+fn space_newline<'a>() -> Parser<'a, u8, ()> {
+    is_a(multispace).repeat(0..).discard()
+}
+
+fn space<'a>() -> Parser<'a, u8, ()> {
+    is_a(char_class::space).repeat(0..).discard()
 }
 
 fn string<'a>() -> Parser<'a, u8, String> {
-    (sym(b'"') * is_a(alphanum).repeat(0..) - sym(b'"'))
+    (sym(b'"') * none_of(b"\"").repeat(0..) - sym(b'"'))
         .map(|bytes| String::from_utf8(bytes).unwrap())
 }
 
-fn function_call<'a>() -> Parser<'a, u8, FunctionCall> {
-    (id() - sym(b' ').repeat(0..) - sym(b'(')
-        + (space() * (string().map(|x| Value::String(x))) - space()).repeat(0..2)
-        + (space() * sym(b',') * space() * (string().map(|x| Value::String(x)))
-            - space()
-            - sym(b','))
-        .repeat(0..)
-        - sym(b')'))
-    .map(|((name, mut param1), mut params)| {
-        param1.append(&mut params);
-        FunctionCall {
-            func_name: name,
-            arguments: param1,
-        }
+fn rule<'a>() -> Parser<'a, u8, Rule> {
+    (spaced(id()) - sym(b'{') - space_newline() + spaced_newline(command()).repeat(0..)
+        - space()
+        - sym(b'}'))
+    .map(|(name, cmds)| Rule { name, cmds })
+}
+
+fn command<'a>() -> Parser<'a, u8, Command> {
+    (spaced(id())
+        + spaced(
+            string().map(|x| {
+                eprintln!("string: {}", x);
+                format!("\"{}\"", x)
+            }) | id().map(|x| x.0),
+        )
+        .repeat(0..))
+    .map(|(name, args)| Command {
+        program: name.0,
+        args,
     })
 }
 
-fn rule<'a>() -> Parser<'a, u8, Rule> {
-    (seq(b"rule") * spaced(id()) - sym(b'{') + spaced(statement()).repeat(0..) - sym(b'}'))
-        .map(|(name, values)| Rule { name, values })
-}
-
 fn id<'a>() -> Parser<'a, u8, Name> {
-    (is_a(alpha) + (is_a(alphanum) | sym(b'_')).repeat(0..)).map(|(first, rest)| {
+    (is_a(alpha) + (not_a(multispace)).repeat(0..)).map(|(first, rest)| {
         Name(format!(
             "{}{}",
             first as char,
@@ -88,38 +95,27 @@ fn id<'a>() -> Parser<'a, u8, Name> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FunctionCall, Value};
-
     #[test]
     fn rule() {
-        let program = b"rule my_rule {
-            function_call();
-
-            other_function_call();
+        let program = b"build {
+            cargo build
+            other build
         }";
         let rule = super::rule().parse(program).unwrap();
-        assert!(rule.name == "my_rule".into());
 
-        assert!(rule.values.len() == 2);
-
-        assert!(rule.values.contains(&Value::FunctionCall(FunctionCall {
-            func_name: "function_call".into(),
-            arguments: vec![],
-        })));
-
-        assert!(rule.values.contains(&Value::FunctionCall(FunctionCall {
-            func_name: "other_function_call".into(),
-            arguments: vec![],
-        })));
+        assert!(rule.name == "build".into());
+        assert!(rule.cmds.len() == 2);
     }
 
     #[test]
-    fn function_call_with_params() {
-        let program = b"function_call(\"test\")";
-        let func_call = super::function_call().parse(program).unwrap();
+    fn command() {
+        let program = b"cargo test \"build bob\" run";
+        let command = super::command().parse(program).unwrap();
 
-        assert!(func_call.func_name == "function_call".into());
-        assert!(func_call.arguments == vec![Value::String("test".to_string())]);
+        dbg!(&command);
+
+        assert!(command.program == "cargo");
+        assert!(command.args == vec!["test", "\"build bob\"", "run"]);
     }
 
     #[test]
@@ -133,44 +129,41 @@ mod tests {
     #[test]
     fn project_rules() {
         let program = b"project my_project {
-            rule my_rule {
-                function_call();
-                other_function_call();
-
-
-
-                another_function_call();
+            build {
+                cargo build
             }
 
-            rule my_other_rule {
-                just_call_one();
+            test {
+                cargo nextest run
             }
         }";
         let project = super::project().parse(program).unwrap();
 
         assert!(project.rules.len() == 2);
 
-        assert!(project
-            .rules
-            .iter()
-            .any(|rule| rule.name == "my_rule".into()));
-        assert!(project
-            .rules
-            .iter()
-            .any(|rule| rule.name == "my_other_rule".into()));
+        assert!(project.rules.iter().any(|rule| rule.name == "build".into()));
+        assert!(project.rules.iter().any(|rule| rule.name == "test".into()));
     }
 
     #[test]
     fn many_projects() {
         let program = b"project my_project {
-            rule build {
-                function_call();
+            build {
+                cargo build
+            }
+
+            test {
+                cargo nextest run
             }
         }
         
-        project my_other_project {
-            rule test {
-                function_call();
+        project other_my-project {
+            build {
+                cargo build
+            }
+            
+            test {
+                cargo test
             }
         }";
 
