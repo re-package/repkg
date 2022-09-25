@@ -5,15 +5,16 @@ use pom::{
     parser::*,
 };
 
-use crate::{rule::Rule, ASTNode, Command, Import, Name, Program, Project};
+use crate::{rule::Rule, ASTNode, Command, Name, Program, Project};
 
 pub fn parser<'a>() -> Parser<'a, u8, Program> {
-    spaced_newline(project().map(|x| ASTNode::Project(x)))
+    spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
         .repeat(0..)
         .map(|nodes| {
             let functions = BTreeMap::new();
             let mut projects = BTreeMap::new();
-            let mut imports: Vec<Import> = vec![];
+            let mut imports = vec![];
+            let mut rules = BTreeMap::new();
             for node in nodes {
                 match node {
                     ASTNode::Project(proj) => {
@@ -22,11 +23,15 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
                     ASTNode::Import(import) => {
                         imports.push(import);
                     }
+                    ASTNode::Rule(rule) => {
+                        rules.insert(rule.name.to_owned(), rule);
+                    }
                 }
             }
             Program {
                 functions,
                 projects,
+                rules,
                 imports,
             }
         })
@@ -191,6 +196,12 @@ mod tests {
             test {
                 cargo test
             }
+        }
+        
+        build: cargo build
+        
+        test {
+            cargo nextest run
         }";
 
         let result = super::parser().parse(program).unwrap();

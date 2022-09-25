@@ -24,6 +24,7 @@ pub struct Import {
 pub enum ASTNode {
     Project(Project),
     Import(Import),
+    Rule(Rule),
 }
 
 #[derive(Debug)]
@@ -56,6 +57,7 @@ pub struct Program {
     pub functions: BTreeMap<Name, Function>,
     pub projects: BTreeMap<Name, Project>,
     pub imports: Vec<Import>,
+    pub rules: BTreeMap<Name, Rule>,
 }
 
 #[derive(Debug, PartialEq)]
