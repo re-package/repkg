@@ -30,7 +30,7 @@ pub enum ASTNode {
 #[derive(Debug)]
 pub struct Project {
     pub name: Name,
-    pub rules: Vec<Rule>,
+    pub rules: BTreeMap<Name, Rule>,
     pub path: PathBuf,
 }
 
@@ -58,7 +58,7 @@ pub struct Program {
     pub rules: BTreeMap<Name, Rule>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Command {
     pub program: String,
     pub args: Vec<String>,

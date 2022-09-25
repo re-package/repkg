@@ -35,12 +35,12 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
     (seq(b"project") * spaced(id()) + (space() * seq(b"in") * spaced(string())).opt()
         - sym(b'{')
         - space_newline()
-        + (space_newline() * rule() - space_newline()).repeat(0..)
+        + (space_newline() * rule().map(|x| (x.name.to_owned(), x)) - space_newline()).repeat(0..)
         - space()
         - sym(b'}'))
     .map(|((name, path), rules)| Project {
         name,
-        rules,
+        rules: BTreeMap::from_iter(rules.into_iter()),
         path: PathBuf::from(path.unwrap_or(".".to_string())),
     })
 }
@@ -166,8 +166,14 @@ mod tests {
 
         assert!(project.rules.len() == 2);
 
-        assert!(project.rules.iter().any(|rule| rule.name == "build".into()));
-        assert!(project.rules.iter().any(|rule| rule.name == "test".into()));
+        assert!(project
+            .rules
+            .iter()
+            .any(|(name, _rule)| name == &"build".into()));
+        assert!(project
+            .rules
+            .iter()
+            .any(|(name, _rule)| name == &"test".into()));
     }
 
     #[test]
