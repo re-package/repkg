@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use pom::{
     char_class::{self, *},
@@ -33,11 +33,17 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Project> {
-    (seq(b"project") * space() * id() - space() - sym(b'{') - space_newline()
+    (seq(b"project") * spaced(id()) + (space() * seq(b"in") * spaced(string())).opt()
+        - sym(b'{')
+        - space_newline()
         + (space_newline() * rule() - space_newline()).repeat(0..)
         - space()
         - sym(b'}'))
-    .map(|(name, rules)| Project { name, rules })
+    .map(|((name, path), rules)| Project {
+        name,
+        rules,
+        path: PathBuf::from(path.unwrap_or(".".to_string())),
+    })
 }
 
 fn rule<'a>() -> Parser<'a, u8, Rule> {
@@ -95,6 +101,8 @@ fn space<'a>() -> Parser<'a, u8, ()> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::Command;
 
     #[test]
@@ -137,10 +145,11 @@ mod tests {
 
     #[test]
     fn project() {
-        let program = b"project my_project {
+        let program = b"project my-project in \"my-project\" {
         }";
         let project = super::project().parse(program).unwrap();
-        assert!(project.name == "my_project".into());
+        assert!(project.name == "my-project".into());
+        assert!(project.path == PathBuf::from("my-project"));
     }
 
     #[test]

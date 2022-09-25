@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use rule::Rule;
 
@@ -30,6 +30,7 @@ pub enum ASTNode {
 pub struct Project {
     pub name: Name,
     pub rules: Vec<Rule>,
+    pub path: PathBuf,
 }
 
 #[derive(Debug, PartialEq)]
