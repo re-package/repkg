@@ -40,27 +40,6 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
     .map(|(name, rules)| Project { name, rules })
 }
 
-fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
-    space() * parser - space()
-}
-
-fn spaced_newline<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
-    space_newline() * parser - space_newline()
-}
-
-fn space_newline<'a>() -> Parser<'a, u8, ()> {
-    is_a(multispace).repeat(0..).discard()
-}
-
-fn space<'a>() -> Parser<'a, u8, ()> {
-    is_a(char_class::space).repeat(0..).discard()
-}
-
-fn string<'a>() -> Parser<'a, u8, String> {
-    (sym(b'"') * none_of(b"\"").repeat(0..) - sym(b'"'))
-        .map(|bytes| String::from_utf8(bytes).unwrap())
-}
-
 fn rule<'a>() -> Parser<'a, u8, Rule> {
     (spaced(id()) - sym(b'{') - space_newline() + spaced_newline(command()).repeat(0..)
         - space()
@@ -83,6 +62,11 @@ fn command<'a>() -> Parser<'a, u8, Command> {
     })
 }
 
+fn string<'a>() -> Parser<'a, u8, String> {
+    (sym(b'"') * none_of(b"\"").repeat(0..) - sym(b'"'))
+        .map(|bytes| String::from_utf8(bytes).unwrap())
+}
+
 fn id<'a>() -> Parser<'a, u8, Name> {
     (is_a(alpha) + (not_a(multispace)).repeat(0..)).map(|(first, rest)| {
         Name(format!(
@@ -93,8 +77,35 @@ fn id<'a>() -> Parser<'a, u8, Name> {
     })
 }
 
+fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
+    space() * parser - space()
+}
+
+fn spaced_newline<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
+    space_newline() * parser - space_newline()
+}
+
+fn space_newline<'a>() -> Parser<'a, u8, ()> {
+    is_a(multispace).repeat(0..).discard()
+}
+
+fn space<'a>() -> Parser<'a, u8, ()> {
+    is_a(char_class::space).repeat(0..).discard()
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn command() {
+        let program = b"cargo test \"build bob\" run";
+        let command = super::command().parse(program).unwrap();
+
+        dbg!(&command);
+
+        assert!(command.program == "cargo");
+        assert!(command.args == vec!["test", "\"build bob\"", "run"]);
+    }
+
     #[test]
     fn rule() {
         let program = b"build {
@@ -105,17 +116,6 @@ mod tests {
 
         assert!(rule.name == "build".into());
         assert!(rule.cmds.len() == 2);
-    }
-
-    #[test]
-    fn command() {
-        let program = b"cargo test \"build bob\" run";
-        let command = super::command().parse(program).unwrap();
-
-        dbg!(&command);
-
-        assert!(command.program == "cargo");
-        assert!(command.args == vec!["test", "\"build bob\"", "run"]);
     }
 
     #[test]
