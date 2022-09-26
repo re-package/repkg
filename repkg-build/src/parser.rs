@@ -8,27 +8,28 @@ use pom::{
 use crate::{rule::Rule, ASTNode, Command, Name, Program, Project};
 
 pub fn parser<'a>() -> Parser<'a, u8, Program> {
-    spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
-        .repeat(0..)
-        .map(|nodes| {
-            let mut projects = BTreeMap::new();
-            let mut imports = vec![];
-            let mut rules = BTreeMap::new();
-            for node in nodes {
-                match node {
-                    ASTNode::Project(proj) => {
-                        projects.insert(proj.name.to_owned(), proj);
-                    }
-                    ASTNode::Import(import) => {
-                        imports.push(import);
-                    }
-                    ASTNode::Rule(rule) => {
-                        rules.insert(rule.name.to_owned(), rule);
-                    }
+    (spaced_newline(project()).map(|x| ASTNode::Project(x))
+        | spaced_newline(rule()).map(|x| ASTNode::Rule(x)))
+    .repeat(0..)
+    .map(|nodes| {
+        let mut projects = BTreeMap::new();
+        let mut imports = vec![];
+        let mut rules = BTreeMap::new();
+        for node in nodes {
+            match node {
+                ASTNode::Project(proj) => {
+                    projects.insert(proj.name.to_owned(), proj);
+                }
+                ASTNode::Import(import) => {
+                    imports.push(import);
+                }
+                ASTNode::Rule(rule) => {
+                    rules.insert(rule.name.to_owned(), rule);
                 }
             }
-            Program { projects, rules }
-        })
+        }
+        Program { projects, rules }
+    })
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Project> {
@@ -53,7 +54,7 @@ fn rule<'a>() -> Parser<'a, u8, Rule> {
 }
 
 fn command<'a>() -> Parser<'a, u8, Command> {
-    (spaced(id())
+    (spaced((sym(b'#') | sym(b'$')).opt() + id())
         + spaced(
             string().map(|x| {
                 eprintln!("string: {}", x);
@@ -61,7 +62,8 @@ fn command<'a>() -> Parser<'a, u8, Command> {
             }) | id().map(|x| x.0),
         )
         .repeat(0..))
-    .map(|(name, args)| Command {
+    .map(|((prefix, name), args)| Command {
+        prefix: prefix.map(|x| char::from_u32(x as u32).unwrap()),
         program: name.0,
         args,
     })
@@ -113,6 +115,7 @@ mod tests {
 
         assert!(command.program == "cargo");
         assert!(command.args == vec!["test", "\"build bob\"", "run", "--release"]);
+        assert!(command.prefix == None);
     }
 
     #[test]
@@ -137,7 +140,8 @@ mod tests {
             rule.cmds
                 == vec![Command {
                     program: "cargo".to_string(),
-                    args: vec!["build".to_string()]
+                    args: vec!["build".to_string()],
+                    prefix: None,
                 }]
         );
     }
@@ -202,11 +206,17 @@ mod tests {
         
         test {
             cargo nextest run
+        }
+        
+        buildDependencies {
+            #rust.stable.cargo
         }";
 
         let result = super::parser().parse(program).unwrap();
 
+        dbg!(&result.rules);
+
         assert!(result.projects.len() == 2);
-        assert!(result.rules.len() == 2);
+        assert!(result.rules.len() == 3);
     }
 }

@@ -60,6 +60,7 @@ pub struct Program {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Command {
+    pub prefix: Option<char>,
     pub program: String,
     pub args: Vec<String>,
 }
