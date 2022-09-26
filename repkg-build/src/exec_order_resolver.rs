@@ -28,6 +28,9 @@ impl Resolver1 {
         let mut has_pre = program.rules.get(&gen_pre(&rule.name));
         let mut has_dep = program.rules.get(&gen_dep(&rule.name));
         loop {
+            if rule.name.0.ends_with("Dependencies") {
+                break;
+            }
             if let Some(dep) = has_dep {
                 exec_before.push(dep);
             }
