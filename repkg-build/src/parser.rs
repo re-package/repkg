@@ -73,7 +73,7 @@ fn string<'a>() -> Parser<'a, u8, String> {
 }
 
 fn id<'a>() -> Parser<'a, u8, Name> {
-    (is_a(alpha) + (not_a(multispace)).repeat(0..)).map(|(first, rest)| {
+    ((is_a(alpha) | sym(b'-')) + (not_a(multispace)).repeat(0..)).map(|(first, rest)| {
         Name(format!(
             "{}{}",
             first as char,
@@ -106,13 +106,13 @@ mod tests {
 
     #[test]
     fn command() {
-        let program = b"cargo test \"build bob\" run";
+        let program = b"cargo test \"build bob\" run --release";
         let command = super::command().parse(program).unwrap();
 
         dbg!(&command);
 
         assert!(command.program == "cargo");
-        assert!(command.args == vec!["test", "\"build bob\"", "run"]);
+        assert!(command.args == vec!["test", "\"build bob\"", "run", "--release"]);
     }
 
     #[test]

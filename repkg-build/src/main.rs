@@ -14,11 +14,7 @@ fn main() {
 
             let program = parser().parse(content.as_bytes()).unwrap();
 
-            dbg!(&program);
-
-            let to_exec = program.rules.get(&command.into()).unwrap();
-
-            dbg!(&to_exec);
+            let _to_exec = program.rules.get(&command.into()).unwrap();
         }
     }
 }
