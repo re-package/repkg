@@ -8,33 +8,32 @@ use pom::{
 use crate::{rule::Rule, ASTNode, Command, Name, Project};
 
 pub fn parser<'a>() -> Parser<'a, u8, Project> {
-    (spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
-        - end())
-    .repeat(0..)
-    .map(|nodes| {
-        let mut projects = BTreeMap::new();
-        let mut imports = vec![];
-        let mut rules = BTreeMap::new();
-        for node in nodes {
-            match node {
-                ASTNode::Project(proj) => {
-                    projects.insert(proj.name.to_owned(), proj);
-                }
-                ASTNode::Import(import) => {
-                    imports.push(import);
-                }
-                ASTNode::Rule(rule) => {
-                    rules.insert(rule.name.to_owned(), rule);
+    (spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x))))
+        .repeat(0..)
+        .map(|nodes| {
+            let mut projects = BTreeMap::new();
+            let mut imports = vec![];
+            let mut rules = BTreeMap::new();
+            for node in nodes {
+                match node {
+                    ASTNode::Project(proj) => {
+                        projects.insert(proj.name.to_owned(), proj);
+                    }
+                    ASTNode::Import(import) => {
+                        imports.push(import);
+                    }
+                    ASTNode::Rule(rule) => {
+                        rules.insert(rule.name.to_owned(), rule);
+                    }
                 }
             }
-        }
-        Project {
-            projects,
-            rules,
-            name: "root".into(),
-            path: PathBuf::from("."),
-        }
-    })
+            Project {
+                projects,
+                rules,
+                name: "root".into(),
+                path: PathBuf::from("."),
+            }
+        })
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Project> {
@@ -194,7 +193,7 @@ mod tests {
             }
         }
         
-        project other_my-project {
+        project other_my_project {
             build {
                 cargo build
             }
@@ -216,7 +215,7 @@ mod tests {
 
         let result = super::parser().parse(program).unwrap();
 
-        dbg!(&result.rules);
+        dbg!(&result);
 
         assert!(result.projects.len() == 2);
         assert!(result.rules.len() == 3);
