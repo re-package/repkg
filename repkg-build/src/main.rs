@@ -12,15 +12,15 @@ use repkg_build::{
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let cli = Cli::parse();
+    let mut cli = Cli::parse();
 
-    run(cli)?;
+    run(&mut cli)?;
 
     Ok(())
 }
 
-fn run(cli: Cli) -> Result<()> {
-    match cli.command.unwrap_or(Command::Run {
+fn run(cli: &mut Cli) -> Result<()> {
+    match cli.command.as_ref().unwrap_or(&Command::Run {
         command: "build".to_string(),
     }) {
         Command::Run { command } => {
@@ -38,6 +38,18 @@ fn run(cli: Cli) -> Result<()> {
             let executor = Executor::new(&program);
             executor.execute(&to_exec, &program)?;
         }
+        Command::Build => {
+            cli.command = Some(Command::Run {
+                command: "build".to_string(),
+            });
+            run(cli)?;
+        }
+        Command::Test => {
+            cli.command = Some(Command::Run {
+                command: "test".to_string(),
+            });
+            run(cli)?;
+        }
     }
     Ok(())
 }
@@ -51,4 +63,6 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     Run { command: String },
+    Build,
+    Test,
 }

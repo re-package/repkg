@@ -8,6 +8,10 @@ project repkg-build in "repkg-build" {
     test  : cargo nextest run --release
 }
 
+preBuild {
+    !echo Building!
+}
+
 build {
     #repkg build
     #repkg-build build
