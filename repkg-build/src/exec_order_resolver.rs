@@ -1,4 +1,6 @@
-use crate::{rule::Rule, Name, Project};
+use repkg_common::Rule;
+
+use crate::{Name, Project};
 
 pub trait Resolver {
     fn get_tasks<'a>(initial: &'a Rule, project: &'a Project) -> Vec<&'a Rule>;

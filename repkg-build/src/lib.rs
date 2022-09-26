@@ -1,20 +1,8 @@
-use std::{collections::BTreeMap, path::PathBuf};
-
-use rule::Rule;
+use repkg_common::{Name, Project, Rule};
 
 pub mod exec;
 pub mod exec_order_resolver;
 pub mod parser;
-pub mod rule;
-
-#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Debug)]
-pub struct Name(pub String);
-
-impl<T: ToString> From<T> for Name {
-    fn from(t: T) -> Self {
-        Self(t.to_string())
-    }
-}
 
 #[derive(Debug)]
 pub struct Import {
@@ -45,19 +33,4 @@ pub struct Function {
 pub struct FunctionCall {
     pub func_name: Name,
     pub arguments: Vec<Value>,
-}
-
-#[derive(Debug)]
-pub struct Project {
-    pub name: Name,
-    pub projects: BTreeMap<Name, Project>,
-    pub rules: BTreeMap<Name, Rule>,
-    pub path: PathBuf,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Command {
-    pub prefix: Option<char>,
-    pub program: String,
-    pub args: Vec<String>,
 }

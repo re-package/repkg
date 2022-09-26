@@ -1,4 +1,5 @@
 use color_eyre::eyre::eyre;
+use repkg_common::{provider::PackageProvider, Command};
 use std::process;
 
 use crate::{
@@ -19,25 +20,19 @@ impl<'a> Executor<'a> {
 impl<'a> super::ExecutorT<'a> for Executor<'a> {
     fn run_command(
         &self,
-        command: &crate::Command,
+        command: &Command,
         project: &'a Project,
+        project_provider: Option<&impl PackageProvider>,
     ) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.path.canonicalize()?)?;
         let res = match command.prefix {
             Some('#') => {
-                // if let Some(rule) = context.rules().get(&command.program.into()) {
-                //     let exec_order =
-                //         Resolver1::get_tasks(rule, self.context.unwrap_or(program));
-
-                //     self.execute(exec_order)?;
-                //     Ok(())
-                // } else {
-                //     todo!()
-                // }
                 // TODO: add remote projects (ie. dependencies)
                 let project = if command.program == "self".to_string() {
                     project
+                } else if let Some(project_provider) = project_provider {
+                    project_provider.get_latest_project(&command.program)?
                 } else {
                     self.context
                         .projects
@@ -53,7 +48,7 @@ impl<'a> super::ExecutorT<'a> for Executor<'a> {
                     ))?;
                     let exec_order = Resolver1::get_tasks(initial, project);
 
-                    self.execute(&exec_order, project)?
+                    self.execute(&exec_order, project, project_provider)?
                 }
 
                 Ok(())

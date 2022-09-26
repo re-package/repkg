@@ -1,2 +1,7 @@
 [workspace]
-members = ["repkg", "repkg-build"]
+members = ["repkg", "repkg-build", "repkg-common"]
+
+[workspace.dependencies]
+color-eyre = "0.6.2"
+lenient_semver = "0.4.2"
+semver = "1.0.14"

@@ -8,6 +8,7 @@ use repkg_build::{
     exec_order_resolver::{Resolver, Resolver1},
     parser::parser,
 };
+use repkg_common::provider::NonePackageProvider;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -46,7 +47,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 let to_exec = Resolver1::get_tasks(&to_exec, &project);
 
                 let executor = Executor::new(&project);
-                executor.execute(&to_exec, &project)?;
+                executor.execute(&to_exec, &project, None::<&NonePackageProvider>)?;
             }
         }
         Command::Build => {

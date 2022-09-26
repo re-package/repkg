@@ -5,7 +5,9 @@ use pom::{
     parser::*,
 };
 
-use crate::{rule::Rule, ASTNode, Command, Name, Project};
+use crate::ASTNode;
+
+use repkg_common::{Command, Name, Project, Rule};
 
 pub fn parser<'a>() -> Parser<'a, u8, Project> {
     (spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x))))
@@ -103,9 +105,9 @@ fn space<'a>() -> Parser<'a, u8, ()> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use repkg_common::Command;
 
-    use crate::Command;
+    use std::path::PathBuf;
 
     #[test]
     fn command() {
