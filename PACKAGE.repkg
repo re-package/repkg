@@ -9,7 +9,7 @@ project repkg-build in "repkg-build" {
 }
 
 preBuild {
-    !echo Building!
+    echo Building!
 }
 
 build {
