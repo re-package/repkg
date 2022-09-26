@@ -28,15 +28,26 @@ fn run(cli: &mut Cli) -> Result<()> {
 
             let program = parser().parse(content.as_bytes())?;
 
-            let to_exec = program
-                .rules
-                .get(&command.clone().into())
-                .ok_or(eyre!("No rules found matching '{}'", &command))?;
+            for project in cli.projects.as_ref().unwrap_or(&vec!["root".to_string()]) {
+                let project = if project == &"root".to_string() {
+                    &program
+                } else {
+                    program
+                        .projects
+                        .get(&project.into())
+                        .ok_or(eyre!("project '{}' does not exist", project))?
+                };
 
-            let to_exec = Resolver1::get_tasks(&to_exec, &program);
+                let to_exec = project
+                    .rules
+                    .get(&command.clone().into())
+                    .ok_or(eyre!("No rules found matching '{}'", &command))?;
 
-            let executor = Executor::new(&program);
-            executor.execute(&to_exec, &program)?;
+                let to_exec = Resolver1::get_tasks(&to_exec, &project);
+
+                let executor = Executor::new(&project);
+                executor.execute(&to_exec, &project)?;
+            }
         }
         Command::Build => {
             cli.command = Some(Command::Run {
@@ -58,6 +69,8 @@ fn run(cli: &mut Cli) -> Result<()> {
 struct Cli {
     #[clap(subcommand)]
     command: Option<Command>,
+    #[clap(short, long = "project")]
+    projects: Option<Vec<String>>,
 }
 
 #[derive(Subcommand)]

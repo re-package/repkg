@@ -1,20 +1,24 @@
 project repkg in "repkg" {
     build : cargo build --release
     test  : cargo nextest run --release
+    clean : cargo clean
 }
         
 project repkg-build in "repkg-build" {
     build : cargo build --release
     test  : cargo nextest run --release
-}
-
-preBuild {
-    echo Building!
+    clean : cargo clean
 }
 
 build {
     #repkg build
     #repkg-build build
+}
+
+clean : cargo clean
+
+cleanBuild {
+    #self clean build
 }
 
 test : cargo nextest run --release
