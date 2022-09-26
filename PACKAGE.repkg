@@ -1,25 +1,17 @@
 project repkg in "repkg" {
-    build {
-        cargo build
-    }
-
-    test {
-        cargo nextest run
-    }
+    build : cargo build --release
+    test  : cargo nextest run --release
 }
         
 project repkg-build in "repkg-build" {
-    build {
-        cargo build
-    }
-    
-    test {
-        cargo test
-    }
+    build : cargo build --release
+    test  : cargo nextest run --release
 }
-        
-build : cargo build --release
 
-test {
-    cargo nextest run
+testDependencies {
+    #crates.nextest
+}
+
+buildDependencies {
+    #rust.stable.cargo
 }
