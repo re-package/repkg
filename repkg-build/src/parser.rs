@@ -5,9 +5,9 @@ use pom::{
     parser::*,
 };
 
-use crate::{rule::Rule, ASTNode, Command, Name, Program, Project};
+use crate::{rule::Rule, ASTNode, Command, Name, Project};
 
-pub fn parser<'a>() -> Parser<'a, u8, Program> {
+pub fn parser<'a>() -> Parser<'a, u8, Project> {
     (spaced_newline(project()).map(|x| ASTNode::Project(x))
         | spaced_newline(rule()).map(|x| ASTNode::Rule(x)))
     .repeat(0..)
@@ -28,7 +28,12 @@ pub fn parser<'a>() -> Parser<'a, u8, Program> {
                 }
             }
         }
-        Program { projects, rules }
+        Project {
+            projects,
+            rules,
+            name: "root".into(),
+            path: PathBuf::from("."),
+        }
     })
 }
 
@@ -41,6 +46,7 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
         - sym(b'}'))
     .map(|((name, path), rules)| Project {
         name,
+        projects: BTreeMap::new(),
         rules: BTreeMap::from_iter(rules.into_iter()),
         path: PathBuf::from(path.unwrap_or(".".to_string())),
     })
@@ -55,13 +61,7 @@ fn rule<'a>() -> Parser<'a, u8, Rule> {
 
 fn command<'a>() -> Parser<'a, u8, Command> {
     (spaced((sym(b'#') | sym(b'$')).opt() + id())
-        + spaced(
-            string().map(|x| {
-                eprintln!("string: {}", x);
-                format!("\"{}\"", x)
-            }) | id().map(|x| x.0),
-        )
-        .repeat(0..))
+        + spaced(string().map(|x| format!("{}", x)) | id().map(|x| x.0)).repeat(0..))
     .map(|((prefix, name), args)| Command {
         prefix: prefix.map(|x| char::from_u32(x as u32).unwrap()),
         program: name.0,
@@ -75,13 +75,15 @@ fn string<'a>() -> Parser<'a, u8, String> {
 }
 
 fn id<'a>() -> Parser<'a, u8, Name> {
-    ((is_a(alpha) | sym(b'-')) + (not_a(multispace)).repeat(0..)).map(|(first, rest)| {
-        Name(format!(
-            "{}{}",
-            first as char,
-            String::from_utf8(rest).unwrap()
-        ))
-    })
+    ((is_a(alpha) | sym(b'-') | sym(b'/')) + (not_a(multispace)).repeat(0..)).map(
+        |(first, rest)| {
+            Name(format!(
+                "{}{}",
+                first as char,
+                String::from_utf8(rest).unwrap()
+            ))
+        },
+    )
 }
 
 fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
@@ -114,7 +116,7 @@ mod tests {
         dbg!(&command);
 
         assert!(command.program == "cargo");
-        assert!(command.args == vec!["test", "\"build bob\"", "run", "--release"]);
+        assert!(command.args == vec!["test", "build bob", "run", "--release"]);
         assert!(command.prefix == None);
     }
 

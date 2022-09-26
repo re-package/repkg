@@ -8,21 +8,9 @@ project repkg-build in "repkg-build" {
     test  : cargo nextest run --release
 }
 
-testDependencies {
-    #crates.nextest
+build {
+    #repkg build
+    #repkg-build build
 }
 
-buildDependencies {
-    #rust.stable.cargo
-}
-
-preBuild {
-    cargo check
-}
-
-preBuildDependencies {
-    cargo check
-}
-
-build : cargo build --release
-test  : cargo nextest run
+test : cargo nextest run --release

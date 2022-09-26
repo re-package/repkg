@@ -1,22 +1,16 @@
-use crate::{rule::Rule, Name, Program};
+use crate::{rule::Rule, Name, Project};
 
 pub trait Resolver {
-    fn get_tasks<'a>(initial: &'a Rule, program: &'a Program) -> Vec<&'a Rule>;
+    fn get_tasks<'a>(initial: &'a Rule, project: &'a Project) -> Vec<&'a Rule>;
 }
 
 pub struct Resolver1;
 
 impl Resolver for Resolver1 {
-    fn get_tasks<'a>(initial: &'a Rule, program: &'a Program) -> Vec<&'a Rule> {
-        Self::exec_before(initial, program)
-    }
-}
-
-impl Resolver1 {
-    fn exec_before<'a>(rule: &'a Rule, program: &'a Program) -> Vec<&'a Rule> {
+    fn get_tasks<'a>(initial: &'a Rule, project: &'a Project) -> Vec<&'a Rule> {
         let mut exec_before = vec![];
 
-        exec_before.push(rule);
+        exec_before.push(initial);
 
         let gen_pre = |name: &Name| -> Name {
             let (first, rest) = name.0.split_at(1);
@@ -25,18 +19,18 @@ impl Resolver1 {
         let gen_dep = |name: &Name| -> Name { Name(format!("{}Dependencies", name.0)) };
 
         // Does the current rule have a pre{rule} rule
-        let mut has_pre = program.rules.get(&gen_pre(&rule.name));
-        let mut has_dep = program.rules.get(&gen_dep(&rule.name));
+        let mut has_pre = project.rules.get(&gen_pre(&initial.name));
+        let mut has_dep = project.rules.get(&gen_dep(&initial.name));
         loop {
-            if rule.name.0.ends_with("Dependencies") {
+            if initial.name.0.ends_with("Dependencies") {
                 break;
             }
             if let Some(dep) = has_dep {
                 exec_before.push(dep);
             }
             if let Some(pre) = has_pre {
-                has_pre = program.rules.get(&gen_pre(&pre.name));
-                has_dep = program.rules.get(&gen_dep(&pre.name));
+                has_pre = project.rules.get(&gen_pre(&pre.name));
+                has_dep = project.rules.get(&gen_dep(&pre.name));
                 exec_before.push(pre);
             } else {
                 break;

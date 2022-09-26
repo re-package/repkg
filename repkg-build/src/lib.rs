@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use rule::Rule;
 
+pub mod exec;
 pub mod exec_order_resolver;
 pub mod parser;
 pub mod rule;
@@ -28,13 +29,6 @@ pub enum ASTNode {
     Rule(Rule),
 }
 
-#[derive(Debug)]
-pub struct Project {
-    pub name: Name,
-    pub rules: BTreeMap<Name, Rule>,
-    pub path: PathBuf,
-}
-
 #[derive(Debug, PartialEq)]
 pub enum Value {
     FunctionCall(FunctionCall),
@@ -54,9 +48,11 @@ pub struct FunctionCall {
 }
 
 #[derive(Debug)]
-pub struct Program {
+pub struct Project {
+    pub name: Name,
     pub projects: BTreeMap<Name, Project>,
     pub rules: BTreeMap<Name, Rule>,
+    pub path: PathBuf,
 }
 
 #[derive(Debug, PartialEq, Clone)]

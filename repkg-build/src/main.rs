@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
+    exec::{Executor, ExecutorT},
     exec_order_resolver::{Resolver, Resolver1},
     parser::parser,
 };
@@ -34,7 +35,8 @@ fn run(cli: Cli) -> Result<()> {
 
             let to_exec = Resolver1::get_tasks(&to_exec, &program);
 
-            dbg!(to_exec);
+            let executor = Executor::new(&program);
+            executor.execute(&to_exec, &program)?;
         }
     }
     Ok(())
