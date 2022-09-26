@@ -15,3 +15,14 @@ testDependencies {
 buildDependencies {
     #rust.stable.cargo
 }
+
+preBuild {
+    cargo check
+}
+
+preBuildDependencies {
+    cargo check
+}
+
+build : cargo build --release
+test  : cargo nextest run

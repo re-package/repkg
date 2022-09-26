@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use rule::Rule;
 
+pub mod exec_order_resolver;
 pub mod parser;
 pub mod rule;
 

@@ -3,11 +3,22 @@ use std::fs::read_to_string;
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
-use repkg_build::parser::parser;
+use repkg_build::{
+    exec_order_resolver::{Resolver, Resolver1},
+    parser::parser,
+};
 
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let cli = Cli::parse();
 
+    run(cli)?;
+
+    Ok(())
+}
+
+fn run(cli: Cli) -> Result<()> {
     match cli.command.unwrap_or(Command::Run {
         command: "build".to_string(),
     }) {
@@ -16,15 +27,16 @@ fn main() -> Result<()> {
 
             let program = parser().parse(content.as_bytes())?;
 
-            dbg!(&program);
-
-            let _to_exec = program
+            let to_exec = program
                 .rules
-                .get(&command.into())
-                .ok_or(eyre!("No rules found"))?;
+                .get(&command.clone().into())
+                .ok_or(eyre!("No rules found matching '{}'", &command))?;
+
+            let to_exec = Resolver1::get_tasks(&to_exec, &program);
+
+            dbg!(to_exec);
         }
     }
-
     Ok(())
 }
 
