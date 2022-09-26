@@ -39,10 +39,6 @@ impl ResolverT for Resolver {
             }
         }
 
-        if let Some(dep) = project.rules.get(&"dependencies".into()) {
-            exec_before.push(dep);
-        }
-
         exec_before.reverse();
         exec_before
     }
