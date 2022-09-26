@@ -8,8 +8,8 @@ use pom::{
 use crate::{rule::Rule, ASTNode, Command, Name, Project};
 
 pub fn parser<'a>() -> Parser<'a, u8, Project> {
-    (spaced_newline(project()).map(|x| ASTNode::Project(x))
-        | spaced_newline(rule()).map(|x| ASTNode::Rule(x)))
+    (spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
+        - end())
     .repeat(0..)
     .map(|nodes| {
         let mut projects = BTreeMap::new();
@@ -54,7 +54,7 @@ pub fn project<'a>() -> Parser<'a, u8, Project> {
 
 fn rule<'a>() -> Parser<'a, u8, Rule> {
     (spaced(id())
-        + ((sym(b'{') * spaced_newline(command()).repeat(0..) - space() - sym(b'}'))
+        + ((sym(b'{') * spaced_newline(command()).repeat(1..) - space() - sym(b'}'))
             | (space() * sym(b':') * spaced(command()).map(|x| vec![x]))))
     .map(|(name, cmds)| Rule { name, cmds })
 }
