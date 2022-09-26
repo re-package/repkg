@@ -2,13 +2,13 @@ use repkg_common::Rule;
 
 use crate::{Name, Project};
 
-pub trait Resolver {
+pub trait ResolverT {
     fn get_tasks<'a>(initial: &'a Rule, project: &'a Project) -> Vec<&'a Rule>;
 }
 
-pub struct Resolver1;
+pub struct Resolver;
 
-impl Resolver for Resolver1 {
+impl ResolverT for Resolver {
     fn get_tasks<'a>(initial: &'a Rule, project: &'a Project) -> Vec<&'a Rule> {
         let mut exec_before = vec![];
 
@@ -37,6 +37,10 @@ impl Resolver for Resolver1 {
             } else {
                 break;
             }
+        }
+
+        if let Some(dep) = project.rules.get(&"dependencies".into()) {
+            exec_before.push(dep);
         }
 
         exec_before.reverse();

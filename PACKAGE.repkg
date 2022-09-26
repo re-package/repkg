@@ -10,6 +10,10 @@ project repkg-build in "repkg-build" {
     clean : cargo clean
 }
 
+dependencies {
+    #repkg-build test
+}
+
 build {
     #repkg build
     #repkg-build build

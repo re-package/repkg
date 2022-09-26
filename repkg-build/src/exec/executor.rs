@@ -3,7 +3,7 @@ use repkg_common::{provider::PackageProvider, Command};
 use std::process;
 
 use crate::{
-    exec_order_resolver::{Resolver, Resolver1},
+    exec_order_resolver::{Resolver, ResolverT},
     Project,
 };
 
@@ -46,7 +46,7 @@ impl<'a> super::ExecutorT<'a> for Executor<'a> {
                         &rule_name,
                         &project.name.0
                     ))?;
-                    let exec_order = Resolver1::get_tasks(initial, project);
+                    let exec_order = Resolver::get_tasks(initial, project);
 
                     self.execute(&exec_order, project, project_provider)?
                 }

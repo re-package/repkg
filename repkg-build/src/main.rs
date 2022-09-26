@@ -5,7 +5,7 @@ use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
     exec::{Executor, ExecutorT},
-    exec_order_resolver::{Resolver, Resolver1},
+    exec_order_resolver::{Resolver, ResolverT},
     parser::parser,
 };
 use repkg_common::provider::NonePackageProvider;
@@ -44,7 +44,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                     .get(&command.clone().into())
                     .ok_or(eyre!("No rules found matching '{}'", &command))?;
 
-                let to_exec = Resolver1::get_tasks(&to_exec, &project);
+                let to_exec = Resolver::get_tasks(&to_exec, &project);
 
                 let executor = Executor::new(&project);
                 executor.execute(&to_exec, &project, None::<&NonePackageProvider>)?;
