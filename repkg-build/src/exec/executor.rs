@@ -1,43 +1,38 @@
 use color_eyre::eyre::eyre;
 use repkg_common::{provider::PackageProvider, Command};
-use std::process;
 
 use crate::{
+    exec::cmd_provider::CmdProviderT,
     exec_order_resolver::{Resolver, ResolverT},
     Project,
 };
 
-pub struct Executor<'a> {
-    context: &'a Project,
+pub struct Executor<'a, P: PackageProvider, C: CmdProviderT<()>> {
+    project_provider: &'a P,
+    cmd_provider: &'a C,
 }
 
-impl<'a> Executor<'a> {
-    pub fn new(context: &'a Project) -> Self {
-        Self { context }
+impl<'a, P: PackageProvider, C: CmdProviderT<()>> Executor<'a, P, C> {
+    pub fn new(project_provider: &'a P, cmd_provider: &'a C) -> Self {
+        Self {
+            project_provider,
+            cmd_provider,
+        }
     }
 }
 
-impl<'a> super::ExecutorT<'a> for Executor<'a> {
-    fn run_command(
-        &self,
-        command: &Command,
-        project: &'a Project,
-        project_provider: Option<&impl PackageProvider>,
-    ) -> color_eyre::Result<()> {
+impl<'a, P: PackageProvider, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, P, C> {
+    fn run_command(&self, command: &Command, project: &'a Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.path.canonicalize()?)?;
         let res = match command.prefix {
             Some('#') => {
-                // TODO: add remote projects (ie. dependencies)
                 let project = if command.program == "self".to_string() {
                     project
-                } else if let Some(project_provider) = project_provider {
-                    project_provider.get_latest_project(&command.program)?
                 } else {
-                    self.context
-                        .projects
-                        .get(&command.program.clone().into())
-                        .ok_or(eyre!("Requested project does not exist"))?
+                    self.project_provider
+                        .get_latest_project(&command.program)
+                        .map_err(|e| eyre!("This project does not exist: {}", e))?
                 };
 
                 for rule_name in &command.args {
@@ -48,31 +43,39 @@ impl<'a> super::ExecutorT<'a> for Executor<'a> {
                     ))?;
                     let exec_order = Resolver::get_tasks(initial, project);
 
-                    self.execute(&exec_order, project, project_provider)?
+                    self.execute(&exec_order, project)?
                 }
 
                 Ok(())
             }
             // TODO
-            Some('$') => Err(eyre!("'$' prefix not supported yet")),
+            Some('$') => {
+                let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
+                self.cmd_provider
+                    .cmd_inner(&command.program, args.as_slice())
+            }
             Some(_) => Err(eyre!(
                 "Invalid prefix, the available prefixes are '#' and '$'"
             )),
             None => {
-                let status = process::Command::new(&command.program)
-                    .args(&command.args)
-                    .status()?;
+                let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
+                self.cmd_provider
+                    .cmd_external(&command.program, args.as_slice())
 
-                if status.success() {
-                    Ok(())
-                } else {
-                    Err(eyre!(
-                        "Command '{} {}' failed with exit code '{}'",
-                        command.program,
-                        command.args.join(" "),
-                        status.code().unwrap()
-                    ))
-                }
+                // let status = process::Command::new(&command.program)
+                //     .args(&command.args)
+                //     .status()?;
+
+                // if status.success() {
+                //     Ok(())
+                // } else {
+                //     Err(eyre!(
+                //         "Command '{} {}' failed with exit code '{}'",
+                //         command.program,
+                //         command.args.join(" "),
+                //         status.code().unwrap()
+                //     ))
+                // }
             }
         };
         std::env::set_current_dir(&prev_path)?;

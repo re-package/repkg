@@ -10,3 +10,4 @@ clap = { version = "3.2.22", features = ["derive"] }
 pom = "3.2.0"
 color-eyre = { workspace = true }
 repkg-common = { path = "../repkg-common" }
+repkg-macros = { path = "../repkg-macros" }

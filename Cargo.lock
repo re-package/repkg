@@ -335,6 +335,7 @@ dependencies = [
  "color-eyre",
  "pom",
  "repkg-common",
+ "repkg-macros",
 ]
 
 [[package]]
@@ -345,6 +346,10 @@ dependencies = [
  "lenient_semver",
  "semver",
 ]
+
+[[package]]
+name = "repkg-macros"
+version = "0.1.0"
 
 [[package]]
 name = "rustc-demangle"

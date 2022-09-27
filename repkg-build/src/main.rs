@@ -4,7 +4,9 @@ use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
-    exec::{Executor, ExecutorT},
+    exec::{
+        sandbox::SandBoxCmdProvider, system_cmd_provider::SystemCmdProvider, Executor, ExecutorT,
+    },
     exec_order_resolver::{Resolver, ResolverT},
     parser::parser,
 };
@@ -24,8 +26,13 @@ fn run(cli: &mut Cli) -> Result<()> {
     match cli.command.as_ref().unwrap_or(&Command::Run {
         command: "build".to_string(),
         dry_run: false,
+        no_sandbox: false,
     }) {
-        Command::Run { command, dry_run } => {
+        Command::Run {
+            command,
+            dry_run,
+            no_sandbox,
+        } => {
             let content = read_to_string("PACKAGE.repkg")?;
 
             let program = parser().parse(content.as_bytes())?;
@@ -47,24 +54,38 @@ fn run(cli: &mut Cli) -> Result<()> {
 
                 let to_exec = Resolver::get_tasks(&to_exec, &project);
 
-                let executor = Executor::new(&project);
-
                 if !dry_run && !cli.dry_run {
-                    executor.execute(&to_exec, &project, None::<&NonePackageProvider>)?;
+                    if !no_sandbox && !cli.no_sandbox {
+                        let sandbox = SandBoxCmdProvider::new();
+                        let executor = Executor::new(&NonePackageProvider, &sandbox);
+                        executor.execute(&to_exec, &project)?;
+                    } else {
+                        let sandbox = SystemCmdProvider::new();
+                        let executor = Executor::new(&NonePackageProvider, &sandbox);
+                        executor.execute(&to_exec, &project)?;
+                    };
                 }
             }
         }
-        Command::Build { dry_run } => {
+        Command::Build {
+            dry_run,
+            no_sandbox,
+        } => {
             cli.command = Some(Command::Run {
                 command: "build".to_string(),
                 dry_run: *dry_run,
+                no_sandbox: *no_sandbox,
             });
             run(cli)?;
         }
-        Command::Test { dry_run } => {
+        Command::Test {
+            dry_run,
+            no_sandbox,
+        } => {
             cli.command = Some(Command::Run {
                 command: "test".to_string(),
                 dry_run: *dry_run,
+                no_sandbox: *no_sandbox,
             });
             run(cli)?;
         }
@@ -81,6 +102,8 @@ struct Cli {
     /// Parse the script, but don't do anything.
     #[clap(short, long)]
     dry_run: bool,
+    #[clap(short, long)]
+    no_sandbox: bool,
 }
 
 #[derive(Subcommand)]
@@ -89,13 +112,19 @@ enum Command {
         command: String,
         #[clap(short, long)]
         dry_run: bool,
+        #[clap(short, long)]
+        no_sandbox: bool,
     },
     Build {
         #[clap(short, long)]
         dry_run: bool,
+        #[clap(short, long)]
+        no_sandbox: bool,
     },
     Test {
         #[clap(short, long)]
         dry_run: bool,
+        #[clap(short, long)]
+        no_sandbox: bool,
     },
 }
