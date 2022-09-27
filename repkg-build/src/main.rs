@@ -23,8 +23,9 @@ fn main() -> Result<()> {
 fn run(cli: &mut Cli) -> Result<()> {
     match cli.command.as_ref().unwrap_or(&Command::Run {
         command: "build".to_string(),
+        dry_run: false,
     }) {
-        Command::Run { command } => {
+        Command::Run { command, dry_run } => {
             let content = read_to_string("PACKAGE.repkg")?;
 
             let program = parser().parse(content.as_bytes())?;
@@ -47,18 +48,23 @@ fn run(cli: &mut Cli) -> Result<()> {
                 let to_exec = Resolver::get_tasks(&to_exec, &project);
 
                 let executor = Executor::new(&project);
-                executor.execute(&to_exec, &project, None::<&NonePackageProvider>)?;
+
+                if !dry_run && !cli.dry_run {
+                    executor.execute(&to_exec, &project, None::<&NonePackageProvider>)?;
+                }
             }
         }
-        Command::Build => {
+        Command::Build { dry_run } => {
             cli.command = Some(Command::Run {
                 command: "build".to_string(),
+                dry_run: *dry_run,
             });
             run(cli)?;
         }
-        Command::Test => {
+        Command::Test { dry_run } => {
             cli.command = Some(Command::Run {
                 command: "test".to_string(),
+                dry_run: *dry_run,
             });
             run(cli)?;
         }
@@ -72,11 +78,24 @@ struct Cli {
     command: Option<Command>,
     #[clap(short, long = "project")]
     projects: Option<Vec<String>>,
+    /// Parse the script, but don't do anything.
+    #[clap(short, long)]
+    dry_run: bool,
 }
 
 #[derive(Subcommand)]
 enum Command {
-    Run { command: String },
-    Build,
-    Test,
+    Run {
+        command: String,
+        #[clap(short, long)]
+        dry_run: bool,
+    },
+    Build {
+        #[clap(short, long)]
+        dry_run: bool,
+    },
+    Test {
+        #[clap(short, long)]
+        dry_run: bool,
+    },
 }
