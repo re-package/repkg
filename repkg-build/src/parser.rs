@@ -10,7 +10,7 @@ use crate::ASTNode;
 use repkg_common::{Command, Name, Project, Rule};
 
 pub fn parser<'a>() -> Parser<'a, u8, Project> {
-    (spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x))))
+    spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
         .repeat(0..)
         .map(|nodes| {
             let mut projects = BTreeMap::new();
