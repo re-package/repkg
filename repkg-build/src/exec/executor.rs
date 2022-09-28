@@ -4,7 +4,7 @@ use repkg_common::{provider::PackageProvider, Command};
 use crate::{
     exec::cmd_provider::CmdProviderT,
     exec_order_resolver::{Resolver, ResolverT},
-    Project,
+    parser, Project,
 };
 
 pub struct Executor<'a, P: PackageProvider, C: CmdProviderT<()>> {
@@ -55,15 +55,27 @@ impl<'a, P: PackageProvider, C: CmdProviderT<()>> super::ExecutorT<'a> for Execu
 
                 Ok(())
             }
-            // TODO
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
                 self.cmd_provider
                     .cmd_inner(&command.program, args.as_slice())
             }
-            Some(_) => Err(eyre!(
-                "Invalid prefix, the available prefixes are '#' and '$'"
-            )),
+            Some('!') => {
+                if command.program != "windows"
+                    && command.program != "unix"
+                    && command.program != "linux"
+                {
+                    return Err(eyre!("Unsupported test '{}'", command.program));
+                }
+                if os_info::get().family().to_string().to_lowercase() != command.program {
+                    return Ok(());
+                }
+                let to_parse = command.args.join(" ");
+                let command = parser::command().parse(to_parse.as_bytes())?;
+
+                self.run_command(&command, project)
+            }
+            Some(p) => Err(eyre!("Unsupported prefix '{}'", p)),
             None => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
                 self.cmd_provider

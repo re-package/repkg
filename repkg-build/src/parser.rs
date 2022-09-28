@@ -60,8 +60,8 @@ fn rule<'a>() -> Parser<'a, u8, Rule> {
     .map(|(name, cmds)| Rule { name, cmds })
 }
 
-fn command<'a>() -> Parser<'a, u8, Command> {
-    (spaced((sym(b'#') | sym(b'$')).opt() + id())
+pub fn command<'a>() -> Parser<'a, u8, Command> {
+    (spaced((sym(b'#') | sym(b'$') | sym(b'!')).opt() + id())
         + spaced(string().map(|x| format!("{}", x)) | id().map(|x| x.0)).repeat(0..))
     .map(|((prefix, name), args)| Command {
         prefix: prefix.map(|x| char::from_u32(x as u32).unwrap()),
@@ -76,15 +76,15 @@ fn string<'a>() -> Parser<'a, u8, String> {
 }
 
 fn id<'a>() -> Parser<'a, u8, Name> {
-    ((is_a(alpha) | sym(b'-') | sym(b'/')) + (not_a(multispace)).repeat(0..)).map(
-        |(first, rest)| {
-            Name(format!(
-                "{}{}",
-                first as char,
-                String::from_utf8(rest).unwrap()
-            ))
-        },
-    )
+    ((is_a(alpha) | sym(b'-') | sym(b'/') | sym(b'$') | sym(b'!') | sym(b'#'))
+        + (not_a(multispace)).repeat(0..))
+    .map(|(first, rest)| {
+        Name(format!(
+            "{}{}",
+            first as char,
+            String::from_utf8(rest).unwrap()
+        ))
+    })
 }
 
 fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {

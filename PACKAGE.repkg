@@ -25,9 +25,10 @@ project repkg-macros in "repkg-macros" {
 build : cargo build --release
 
 package {
-    $echo hello
-    $output target/release/repkg-build repkg-build
-    $output target/release/repkg
+    !linux $output target/release/repkg-build
+    !linux $output target/release/repkg
+    !windows $output target/release/repkg-build.exe
+    !windows $output target/release/repkg.exe
 }
 
 clean : cargo clean
