@@ -2,6 +2,7 @@ use repkg_common::{Name, Project, Rule};
 
 pub mod exec;
 pub mod exec_order_resolver;
+pub mod package;
 pub mod parser;
 
 #[derive(Debug)]

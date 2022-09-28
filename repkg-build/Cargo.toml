@@ -11,3 +11,6 @@ pom = "3.2.0"
 color-eyre = { workspace = true }
 repkg-common = { path = "../repkg-common" }
 repkg-macros = { path = "../repkg-macros" }
+tar = "0.4.38"
+flate2 = "1.0.24"
+copy_dir = "0.1.2"

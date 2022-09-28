@@ -8,13 +8,15 @@ use crate::{
 };
 
 pub struct Executor<'a, P: PackageProvider, C: CmdProviderT<()>> {
-    project_provider: &'a P,
+    context: &'a Project,
+    project_provider: Option<&'a P>,
     cmd_provider: &'a C,
 }
 
 impl<'a, P: PackageProvider, C: CmdProviderT<()>> Executor<'a, P, C> {
-    pub fn new(project_provider: &'a P, cmd_provider: &'a C) -> Self {
+    pub fn new(context: &'a Project, project_provider: Option<&'a P>, cmd_provider: &'a C) -> Self {
         Self {
+            context,
             project_provider,
             cmd_provider,
         }
@@ -29,10 +31,15 @@ impl<'a, P: PackageProvider, C: CmdProviderT<()>> super::ExecutorT<'a> for Execu
             Some('#') => {
                 let project = if command.program == "self".to_string() {
                     project
-                } else {
-                    self.project_provider
+                } else if let Some(project_provider) = self.project_provider {
+                    project_provider
                         .get_latest_project(&command.program)
                         .map_err(|e| eyre!("This project does not exist: {}", e))?
+                } else {
+                    self.context
+                        .projects
+                        .get(&command.program.clone().into())
+                        .ok_or(eyre!("This project does not exist"))?
                 };
 
                 for rule_name in &command.args {

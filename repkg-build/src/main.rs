@@ -1,13 +1,18 @@
-use std::fs::read_to_string;
+use std::{
+    env,
+    fs::{read_to_string, OpenOptions},
+};
 
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
     exec::{
-        sandbox::SandBoxCmdProvider, system_cmd_provider::SystemCmdProvider, Executor, ExecutorT,
+        cmd_provider::CmdProviderT, sandbox::SandboxCmdProvider,
+        system_cmd_provider::SystemCmdProvider, Executor, ExecutorT,
     },
     exec_order_resolver::{Resolver, ResolverT},
+    package::Packager,
     parser::parser,
 };
 use repkg_common::provider::NonePackageProvider;
@@ -56,12 +61,14 @@ fn run(cli: &mut Cli) -> Result<()> {
 
                 if !dry_run && !cli.dry_run {
                     if !no_sandbox && !cli.no_sandbox {
-                        let sandbox = SandBoxCmdProvider::new();
-                        let executor = Executor::new(&NonePackageProvider, &sandbox);
+                        let sandbox = SandboxCmdProvider::new();
+                        let executor =
+                            Executor::new(&program, None::<&NonePackageProvider>, &sandbox);
                         executor.execute(&to_exec, &project)?;
                     } else {
                         let sandbox = SystemCmdProvider::new();
-                        let executor = Executor::new(&NonePackageProvider, &sandbox);
+                        let executor =
+                            Executor::new(&program, None::<&NonePackageProvider>, &sandbox);
                         executor.execute(&to_exec, &project)?;
                     };
                 }
@@ -88,6 +95,53 @@ fn run(cli: &mut Cli) -> Result<()> {
                 no_sandbox: *no_sandbox,
             });
             run(cli)?;
+        }
+        Command::Package {
+            dry_run,
+            no_sandbox,
+        } => {
+            let _dry_run = cli.dry_run || *dry_run;
+            let no_sandbox = cli.no_sandbox || *no_sandbox;
+
+            let content = read_to_string("PACKAGE.repkg")?;
+
+            let program = parser().parse(content.as_bytes())?;
+
+            for project in cli.projects.as_ref().unwrap_or(&vec!["root".to_string()]) {
+                let project = if project == &"root".to_string() {
+                    &program
+                } else {
+                    program
+                        .projects
+                        .get(&project.into())
+                        .ok_or(eyre!("project '{}' does not exist", project))?
+                };
+
+                let cur_dir = env::current_dir()?;
+                env::set_current_dir(project.path.canonicalize()?)?;
+
+                if no_sandbox {
+                    let mut sandbox = None::<SystemCmdProvider>;
+                    let mut packager = Packager::new(&project, &mut sandbox);
+                    packager.package_to(&"output/")?;
+                    let mut file = OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .open("output.tar.gz")?;
+                    packager.compress(&mut file)?;
+                } else {
+                    let mut sandbox = None::<SandboxCmdProvider>;
+                    let mut packager = Packager::new(&project, &mut sandbox);
+                    packager.package_to(&"output/")?;
+                    let mut file = OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .open("output.tar.gz")?;
+                    packager.compress(&mut file)?;
+                }
+
+                env::set_current_dir(cur_dir)?;
+            }
         }
     }
     Ok(())
@@ -122,6 +176,12 @@ enum Command {
         no_sandbox: bool,
     },
     Test {
+        #[clap(short, long)]
+        dry_run: bool,
+        #[clap(short, long)]
+        no_sandbox: bool,
+    },
+    Package {
         #[clap(short, long)]
         dry_run: bool,
         #[clap(short, long)]

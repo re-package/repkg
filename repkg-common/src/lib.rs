@@ -1,5 +1,8 @@
+#![feature(pattern)]
+
 use std::{collections::BTreeMap, path::PathBuf};
 
+pub mod fs_util;
 pub mod provider;
 
 #[derive(Debug, Default)]

@@ -10,19 +10,24 @@ project repkg-build in "repkg-build" {
     clean : cargo clean
 }
 
-testing {
-    $echo Hello world!
-    $echo Check complete!
-    $say HellO!
+project repkg-common in "repkg-common" {
+    build : cargo build --release
+    test  : cargo nextest run --release
+    clean : cargo clean
 }
 
-dependencies {
-    #repkg-build test
+project repkg-macros in "repkg-macros" {
+    build : cargo build --release
+    test  : cargo nextest run --release
+    clean : cargo clean
 }
 
-build {
-    #repkg build
-    #repkg-build build
+build : cargo build --release
+
+package {
+    $echo hello
+    $output target/release/repkg-build repkg-build
+    $output target/release/repkg
 }
 
 clean : cargo clean

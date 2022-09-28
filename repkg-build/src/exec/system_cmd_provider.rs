@@ -28,12 +28,16 @@ impl CmdProviderT<()> for SystemCmdProvider {
         }
         Ok(())
     }
-}
 
-impl SystemCmdProvider {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             commands: commands::commands(),
         }
     }
+
+    fn serve(&mut self, name: String, cmd: impl CommandT + 'static) {
+        self.commands.insert(name, Box::new(cmd));
+    }
 }
+
+impl SystemCmdProvider {}
