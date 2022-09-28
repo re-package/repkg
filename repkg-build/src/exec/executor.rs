@@ -61,15 +61,22 @@ impl<'a, P: PackageProvider, C: CmdProviderT<()>> super::ExecutorT<'a> for Execu
                     .cmd_inner(&command.program, args.as_slice())
             }
             Some('!') => {
-                if command.program != "windows"
-                    && command.program != "unix"
-                    && command.program != "linux"
+                let family = os_info::get().family();
+
+                if command.program
+                    != match family {
+                        os_info::Family::BSD => "bsd",
+                        os_info::Family::Linux => "linux",
+                        os_info::Family::MacOS => "macos",
+                        os_info::Family::WindowsNT => "windows",
+                        os_info::Family::SunOS => "sunos",
+                        os_info::Family::Unknown => "unknown",
+                        _ => todo!(),
+                    }
                 {
-                    return Err(eyre!("Unsupported test '{}'", command.program));
-                }
-                if os_info::get().family().to_string().to_lowercase() != command.program {
                     return Ok(());
                 }
+
                 let to_parse = command.args.join(" ");
                 let command = parser::command().parse(to_parse.as_bytes())?;
 
