@@ -5,7 +5,7 @@ use std::{
 };
 
 use flate2::{write::GzEncoder, Compression};
-use repkg_common::{provider::NonePackageProvider, Project};
+use repkg_common::Project;
 
 use color_eyre::{eyre::eyre, Result};
 
@@ -60,11 +60,7 @@ impl<'a, C: CmdProviderT<()>> Packager<'a, C> {
             );
         }
 
-        let executor = Executor::new(
-            &self.project,
-            None::<&NonePackageProvider>,
-            self.sandbox.as_ref().unwrap(),
-        );
+        let executor = Executor::new(self.sandbox.as_ref().unwrap());
 
         let build_rule = self
             .project

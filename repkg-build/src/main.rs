@@ -15,7 +15,6 @@ use repkg_build::{
     package::Packager,
     parser::parser,
 };
-use repkg_common::provider::NonePackageProvider;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -74,7 +73,6 @@ fn run(cli: &mut Cli) -> Result<()> {
                         let mut new_project = parser().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
-                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
                     }
                 }
 
@@ -97,13 +95,11 @@ fn run(cli: &mut Cli) -> Result<()> {
                 if !dry_run && !cli.dry_run {
                     if !no_sandbox && !cli.no_sandbox {
                         let sandbox = SandboxCmdProvider::new();
-                        let executor =
-                            Executor::new(&project, None::<&NonePackageProvider>, &sandbox);
+                        let executor = Executor::new(&sandbox);
                         executor.execute(&to_exec, project)?;
                     } else {
                         let sandbox = SystemCmdProvider::new();
-                        let executor =
-                            Executor::new(&project, None::<&NonePackageProvider>, &sandbox);
+                        let executor = Executor::new(&sandbox);
                         executor.execute(&to_exec, &project)?;
                     };
                 }

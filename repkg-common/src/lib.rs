@@ -3,7 +3,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 pub mod fs_util;
-pub mod provider;
 
 #[derive(Debug, Default)]
 pub struct Project {
@@ -32,6 +31,7 @@ pub struct Rule {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Command {
     pub prefix: Option<char>,
-    pub program: String,
+    /// separated by '.' ie. `rust.rustup` is vec!["rust", "rustup"]
+    pub programs: Vec<String>,
     pub args: Vec<String>,
 }
