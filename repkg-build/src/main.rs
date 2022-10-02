@@ -13,7 +13,7 @@ use repkg_build::{
     },
     exec_order_resolver::{Resolver, ResolverT},
     package::Packager,
-    parser::parser,
+    parser::{self, project},
 };
 
 fn main() -> Result<()> {
@@ -40,7 +40,7 @@ fn run(cli: &mut Cli) -> Result<()> {
             let content =
                 read_to_string(".repkg").map_err(|_| eyre!("No RePkg package file found"))?;
 
-            let mut program = parser().parse(content.as_bytes())?;
+            let mut program = parser::parser().parse(content.as_bytes())?;
 
             for project in cli
                 .projects
@@ -60,7 +60,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                     if let Some(at) = &project.at_ {
                         let content = fs::read_to_string(at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser().parse(content.as_bytes())?;
+                        let mut new_project = parser::project().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                         project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
@@ -70,7 +70,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                         let at = project.in_.join(".repkg");
                         let content = fs::read_to_string(&at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser().parse(content.as_bytes())?;
+                        let mut new_project = parser::project().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                     }
@@ -78,7 +78,7 @@ fn run(cli: &mut Cli) -> Result<()> {
 
                 if let Some(at) = &project.at_ {
                     let content = fs::read_to_string(at)?;
-                    let mut new_project = parser().parse(content.as_bytes())?;
+                    let mut new_project = parser::project().parse(content.as_bytes())?;
                     project.projects.append(&mut new_project.projects);
                     project.rules.append(&mut new_project.rules);
                     project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
@@ -136,7 +136,7 @@ fn run(cli: &mut Cli) -> Result<()> {
 
             let content = read_to_string(".repkg")?;
 
-            let mut program = parser().parse(content.as_bytes())?;
+            let mut program = project().parse(content.as_bytes())?;
 
             for project in cli
                 .projects
@@ -156,7 +156,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                     if let Some(at) = &project.at_ {
                         let content = fs::read_to_string(at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser().parse(content.as_bytes())?;
+                        let mut new_project = parser::project().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                         project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
@@ -166,7 +166,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                         let at = project.in_.join(".repkg");
                         let content = fs::read_to_string(&at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser().parse(content.as_bytes())?;
+                        let mut new_project = parser::project().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                         project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
@@ -175,7 +175,7 @@ fn run(cli: &mut Cli) -> Result<()> {
 
                 if let Some(at) = &project.at_ {
                     let content = fs::read_to_string(at)?;
-                    let mut new_project = parser().parse(content.as_bytes())?;
+                    let mut new_project = parser::project().parse(content.as_bytes())?;
                     project.projects.append(&mut new_project.projects);
                     project.rules.append(&mut new_project.rules);
                     project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();

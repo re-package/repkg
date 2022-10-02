@@ -9,8 +9,8 @@ use crate::ASTNode;
 
 use repkg_common::{Command, Name, Project, Rule};
 
-pub fn parser<'a>() -> Parser<'a, u8, Project> {
-    spaced_newline(project().map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
+pub fn body<'a>() -> Parser<'a, u8, Project> {
+    spaced_newline(call(project).map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
         .repeat(0..)
         .map(|nodes| {
             let mut projects = BTreeMap::new();
@@ -39,23 +39,28 @@ pub fn parser<'a>() -> Parser<'a, u8, Project> {
         })
 }
 
+pub fn parser<'a>() -> Parser<'a, u8, Project> {
+    body()
+}
+
 pub fn project<'a>() -> Parser<'a, u8, Project> {
     (seq(b"project") * spaced(id())
         + spaced(seq(b"in") * spaced(string())).opt()
         + spaced(seq(b"at") * spaced(string())).opt()
-        + ((sym(b'{')
-            * space_newline()
-            * (space_newline() * rule().map(|x| (x.name.to_owned(), x)) - space_newline())
-                .repeat(0..)
-            - space()
-            - sym(b'}'))
-            | spaced(sym(b';')).map(|_| Vec::new())))
-    .map(|(((name, in_), at), rules)| Project {
+        + ((sym(b'{') * call(body) - sym(b'}'))
+            | sym(b';').map(|_| Project {
+                name: "".into(),
+                projects: BTreeMap::new(),
+                rules: BTreeMap::new(),
+                in_: PathBuf::from("."),
+                at_: None,
+            })))
+    .map(|(((name, in_), at_), body)| Project {
         name,
-        projects: BTreeMap::new(),
-        rules: BTreeMap::from_iter(rules.into_iter()),
-        in_: PathBuf::from(in_.unwrap_or(".".to_string())),
-        at_: at.map(|x| PathBuf::from(x)),
+        projects: body.projects,
+        rules: body.rules,
+        in_: in_.map(|x| PathBuf::from(x)).unwrap_or(PathBuf::from(".")),
+        at_: at_.map(|x| PathBuf::from(x)),
     })
 }
 
@@ -83,7 +88,7 @@ fn string<'a>() -> Parser<'a, u8, String> {
 
 fn id<'a>() -> Parser<'a, u8, Name> {
     ((is_a(alpha) | sym(b'-') | sym(b'/') | sym(b'$') | sym(b'!') | sym(b'#'))
-        + (is_a(alphanum) | sym(b'-') | sym(b'-')).repeat(0..))
+        + (is_a(alphanum) | sym(b'-') | sym(b'/') | sym(b'_')).repeat(0..))
     .map(|(first, rest)| {
         Name(format!(
             "{}{}",
@@ -158,6 +163,7 @@ mod tests {
     #[test]
     fn project() {
         let program = b"project my-project in \"my-project\" {
+            build : $echo TODO
         }";
         let project = super::project().parse(program).unwrap();
         assert!(project.name == "my-project".into());
