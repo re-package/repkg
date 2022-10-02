@@ -38,7 +38,7 @@ fn run(cli: &mut Cli) -> Result<()> {
             dry_run,
             no_sandbox,
         } => {
-            let content = read_to_string("PACKAGE.repkg")?;
+            let content = read_to_string(".repkg")?;
 
             let mut program = parser().parse(content.as_bytes())?;
 
