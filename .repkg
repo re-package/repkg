@@ -1,0 +1,24 @@
+project repkg at "repkg/.repkg";
+
+project repkg-build in "repkg-build";
+
+build {
+    #repkg build
+    #repkg-build build
+}
+
+project package {
+    package {
+        !windows $output target/release/repkg-build.exe
+        !windows $output target/release/repkg.exe
+        !linux $output target/release/repkg-build
+        !linux $output target/release/repkg
+    }
+}
+
+package {
+    #self build
+    #package package
+}
+
+clean : cargo clean

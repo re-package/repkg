@@ -1,6 +1,6 @@
 use std::{
-    env,
     fs::{self, read_to_string, OpenOptions},
+    path::PathBuf,
 };
 
 use clap::{Parser, Subcommand};
@@ -38,7 +38,8 @@ fn run(cli: &mut Cli) -> Result<()> {
             dry_run,
             no_sandbox,
         } => {
-            let content = read_to_string(".repkg")?;
+            let content =
+                read_to_string(".repkg").map_err(|_| eyre!("No RePkg package file found"))?;
 
             let mut program = parser().parse(content.as_bytes())?;
 
@@ -55,6 +56,27 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .get_mut(&project.into())
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
+
+                for (_, project) in &mut project.projects {
+                    if let Some(at) = &project.at_ {
+                        let content = fs::read_to_string(at)
+                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
+                        let mut new_project = parser().parse(content.as_bytes())?;
+                        project.projects.append(&mut new_project.projects);
+                        project.rules.append(&mut new_project.rules);
+                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                    } else if project.in_ != PathBuf::from(".")
+                        && project.in_.join(".repkg").exists()
+                    {
+                        let at = project.in_.join(".repkg");
+                        let content = fs::read_to_string(&at)
+                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
+                        let mut new_project = parser().parse(content.as_bytes())?;
+                        project.projects.append(&mut new_project.projects);
+                        project.rules.append(&mut new_project.rules);
+                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                    }
+                }
 
                 if let Some(at) = &project.at_ {
                     let content = fs::read_to_string(at)?;
@@ -116,22 +138,52 @@ fn run(cli: &mut Cli) -> Result<()> {
             let _dry_run = cli.dry_run || *dry_run;
             let no_sandbox = cli.no_sandbox || *no_sandbox;
 
-            let content = read_to_string("PACKAGE.repkg")?;
+            let content = read_to_string(".repkg")?;
 
-            let program = parser().parse(content.as_bytes())?;
+            let mut program = parser().parse(content.as_bytes())?;
 
-            for project in cli.projects.as_ref().unwrap_or(&vec!["root".to_string()]) {
+            for project in cli
+                .projects
+                .as_mut()
+                .unwrap_or(&mut vec!["root".to_string()])
+            {
                 let project = if project == &"root".to_string() {
-                    &program
+                    &mut program
                 } else {
                     program
                         .projects
-                        .get(&project.into())
+                        .get_mut(&project.into())
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
 
-                let cur_dir = env::current_dir()?;
-                env::set_current_dir(project.in_.canonicalize()?)?;
+                for (_, project) in &mut project.projects {
+                    if let Some(at) = &project.at_ {
+                        let content = fs::read_to_string(at)
+                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
+                        let mut new_project = parser().parse(content.as_bytes())?;
+                        project.projects.append(&mut new_project.projects);
+                        project.rules.append(&mut new_project.rules);
+                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                    } else if project.in_ != PathBuf::from(".")
+                        && project.in_.join(".repkg").exists()
+                    {
+                        let at = project.in_.join(".repkg");
+                        let content = fs::read_to_string(&at)
+                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
+                        let mut new_project = parser().parse(content.as_bytes())?;
+                        project.projects.append(&mut new_project.projects);
+                        project.rules.append(&mut new_project.rules);
+                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                    }
+                }
+
+                if let Some(at) = &project.at_ {
+                    let content = fs::read_to_string(at)?;
+                    let mut new_project = parser().parse(content.as_bytes())?;
+                    project.projects.append(&mut new_project.projects);
+                    project.rules.append(&mut new_project.rules);
+                    project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                }
 
                 if no_sandbox {
                     let mut sandbox = None::<SystemCmdProvider>;
@@ -152,8 +204,6 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .open("output.tar.gz")?;
                     packager.compress(&mut file)?;
                 }
-
-                env::set_current_dir(cur_dir)?;
             }
         }
     }
