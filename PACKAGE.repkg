@@ -10,11 +10,7 @@ project repkg-build in "repkg-build" {
     clean : cargo clean
 }
 
-project repkg-common in "repkg-common" {
-    build : cargo build --release
-    test  : cargo nextest run --release
-    clean : cargo clean
-}
+project repkg-common at "repkg-common/PACKAGE.repkg";
 
 project repkg-macros in "repkg-macros" {
     build : cargo build --release

@@ -10,7 +10,8 @@ pub struct Project {
     pub name: Name,
     pub projects: BTreeMap<Name, Project>,
     pub rules: BTreeMap<Name, Rule>,
-    pub path: PathBuf,
+    pub in_: PathBuf,
+    pub at_: Option<PathBuf>,
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Debug, Default)]

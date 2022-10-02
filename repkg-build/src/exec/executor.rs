@@ -26,7 +26,7 @@ impl<'a, P: PackageProvider, C: CmdProviderT<()>> Executor<'a, P, C> {
 impl<'a, P: PackageProvider, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, P, C> {
     fn run_command(&self, command: &Command, project: &'a Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
-        std::env::set_current_dir(&project.path.canonicalize()?)?;
+        std::env::set_current_dir(&project.in_.canonicalize()?)?;
         let res = match command.prefix {
             Some('#') => {
                 let project = if command.program == "self".to_string() {

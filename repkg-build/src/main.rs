@@ -1,6 +1,6 @@
 use std::{
     env,
-    fs::{read_to_string, OpenOptions},
+    fs::{self, read_to_string, OpenOptions},
 };
 
 use clap::{Parser, Subcommand};
@@ -40,17 +40,29 @@ fn run(cli: &mut Cli) -> Result<()> {
         } => {
             let content = read_to_string("PACKAGE.repkg")?;
 
-            let program = parser().parse(content.as_bytes())?;
+            let mut program = parser().parse(content.as_bytes())?;
 
-            for project in cli.projects.as_ref().unwrap_or(&vec!["root".to_string()]) {
+            for project in cli
+                .projects
+                .as_mut()
+                .unwrap_or(&mut vec!["root".to_string()])
+            {
                 let project = if project == &"root".to_string() {
-                    &program
+                    &mut program
                 } else {
                     program
                         .projects
-                        .get(&project.into())
+                        .get_mut(&project.into())
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
+
+                if let Some(at) = &project.at_ {
+                    let content = fs::read_to_string(at)?;
+                    let mut new_project = parser().parse(content.as_bytes())?;
+                    project.projects.append(&mut new_project.projects);
+                    project.rules.append(&mut new_project.rules);
+                    project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
+                }
 
                 let to_exec = project
                     .rules
@@ -59,16 +71,17 @@ fn run(cli: &mut Cli) -> Result<()> {
 
                 let to_exec = Resolver::get_tasks(&to_exec, &project);
 
+                // TODO: properly dry run the script
                 if !dry_run && !cli.dry_run {
                     if !no_sandbox && !cli.no_sandbox {
                         let sandbox = SandboxCmdProvider::new();
                         let executor =
-                            Executor::new(&program, None::<&NonePackageProvider>, &sandbox);
-                        executor.execute(&to_exec, &project)?;
+                            Executor::new(&project, None::<&NonePackageProvider>, &sandbox);
+                        executor.execute(&to_exec, project)?;
                     } else {
                         let sandbox = SystemCmdProvider::new();
                         let executor =
-                            Executor::new(&program, None::<&NonePackageProvider>, &sandbox);
+                            Executor::new(&project, None::<&NonePackageProvider>, &sandbox);
                         executor.execute(&to_exec, &project)?;
                     };
                 }
@@ -118,7 +131,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 };
 
                 let cur_dir = env::current_dir()?;
-                env::set_current_dir(project.path.canonicalize()?)?;
+                env::set_current_dir(project.in_.canonicalize()?)?;
 
                 if no_sandbox {
                     let mut sandbox = None::<SystemCmdProvider>;

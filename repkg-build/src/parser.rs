@@ -33,23 +33,29 @@ pub fn parser<'a>() -> Parser<'a, u8, Project> {
                 projects,
                 rules,
                 name: "root".into(),
-                path: PathBuf::from("."),
+                in_: PathBuf::from("."),
+                at_: None,
             }
         })
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Project> {
-    (seq(b"project") * spaced(id()) + (space() * seq(b"in") * spaced(string())).opt()
-        - sym(b'{')
-        - space_newline()
-        + (space_newline() * rule().map(|x| (x.name.to_owned(), x)) - space_newline()).repeat(0..)
-        - space()
-        - sym(b'}'))
-    .map(|((name, path), rules)| Project {
+    (seq(b"project") * spaced(id())
+        + spaced(seq(b"in") * spaced(string())).opt()
+        + spaced(seq(b"at") * spaced(string())).opt()
+        + ((sym(b'{')
+            * space_newline()
+            * (space_newline() * rule().map(|x| (x.name.to_owned(), x)) - space_newline())
+                .repeat(0..)
+            - space()
+            - sym(b'}'))
+            | spaced(sym(b';')).map(|_| Vec::new())))
+    .map(|(((name, in_), at), rules)| Project {
         name,
         projects: BTreeMap::new(),
         rules: BTreeMap::from_iter(rules.into_iter()),
-        path: PathBuf::from(path.unwrap_or(".".to_string())),
+        in_: PathBuf::from(in_.unwrap_or(".".to_string())),
+        at_: at.map(|x| PathBuf::from(x)),
     })
 }
 
@@ -155,7 +161,7 @@ mod tests {
         }";
         let project = super::project().parse(program).unwrap();
         assert!(project.name == "my-project".into());
-        assert!(project.path == PathBuf::from("my-project"));
+        assert!(project.in_ == PathBuf::from("my-project"));
     }
 
     #[test]
