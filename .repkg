@@ -2,6 +2,10 @@ project repkg at "repkg/.repkg";
 
 project repkg-build in "repkg-build";
 
+project repkg-common in "repkg-common" {}
+
+project repkg-macros in "repkg-macros" {}
+
 build {
     #repkg build
     #repkg-build build

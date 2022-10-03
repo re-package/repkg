@@ -60,7 +60,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                     if let Some(at) = &project.at_ {
                         let content = fs::read_to_string(at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::project().parse(content.as_bytes())?;
+                        let mut new_project = parser::parser().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                         project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
@@ -70,7 +70,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                         let at = project.in_.join(".repkg");
                         let content = fs::read_to_string(&at)
                             .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::project().parse(content.as_bytes())?;
+                        let mut new_project = parser::parser().parse(content.as_bytes())?;
                         project.projects.append(&mut new_project.projects);
                         project.rules.append(&mut new_project.rules);
                     }
