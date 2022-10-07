@@ -1,7 +1,4 @@
-use std::{
-    fs::{self, read_to_string, OpenOptions},
-    path::PathBuf,
-};
+use std::fs::{read_to_string, OpenOptions};
 
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
@@ -11,9 +8,9 @@ use repkg_build::{
         cmd_provider::CmdProviderT, sandbox::SandboxCmdProvider,
         system_cmd_provider::SystemCmdProvider, Executor, ExecutorT,
     },
-    exec_order_resolver::{Resolver, ResolverT},
     package::Packager,
     parser::{self, project},
+    task_order,
 };
 
 fn main() -> Result<()> {
@@ -37,10 +34,13 @@ fn run(cli: &mut Cli) -> Result<()> {
             dry_run,
             no_sandbox,
         } => {
+            let dry_run = cli.dry_run || *dry_run;
+            let no_sandbox = cli.no_sandbox || *no_sandbox;
+
             let content =
                 read_to_string(".repkg").map_err(|_| eyre!("No RePkg package file found"))?;
 
-            let mut program = parser::parser().parse(content.as_bytes())?;
+            let mut program = parser::parser().parse(content.as_bytes())??;
 
             for project in cli
                 .projects
@@ -56,44 +56,12 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
 
-                for (_, project) in &mut project.projects {
-                    if let Some(at) = &project.at_ {
-                        let content = fs::read_to_string(at)
-                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::parser().parse(content.as_bytes())?;
-                        project.projects.append(&mut new_project.projects);
-                        project.rules.append(&mut new_project.rules);
-                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
-                    } else if project.in_ != PathBuf::from(".")
-                        && project.in_.join(".repkg").exists()
-                    {
-                        let at = project.in_.join(".repkg");
-                        let content = fs::read_to_string(&at)
-                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::parser().parse(content.as_bytes())?;
-                        project.projects.append(&mut new_project.projects);
-                        project.rules.append(&mut new_project.rules);
-                    }
-                }
-
-                if let Some(at) = &project.at_ {
-                    let content = fs::read_to_string(at)?;
-                    let mut new_project = parser::project().parse(content.as_bytes())?;
-                    project.projects.append(&mut new_project.projects);
-                    project.rules.append(&mut new_project.rules);
-                    project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
-                }
-
-                let to_exec = project
-                    .rules
-                    .get(&command.clone().into())
-                    .ok_or(eyre!("No rules found matching '{}'", &command))?;
-
-                let to_exec = Resolver::get_tasks(&to_exec, &project);
+                let to_exec = command.into();
+                let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
 
                 // TODO: properly dry run the script
-                if !dry_run && !cli.dry_run {
-                    if !no_sandbox && !cli.no_sandbox {
+                if !dry_run {
+                    if !no_sandbox {
                         let sandbox = SandboxCmdProvider::new();
                         let executor = Executor::new(&sandbox);
                         executor.execute(&to_exec, project)?;
@@ -136,7 +104,7 @@ fn run(cli: &mut Cli) -> Result<()> {
 
             let content = read_to_string(".repkg")?;
 
-            let mut program = project().parse(content.as_bytes())?;
+            let mut program = project().parse(content.as_bytes())??;
 
             for project in cli
                 .projects
@@ -151,35 +119,6 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .get_mut(&project.into())
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
-
-                for (_, project) in &mut project.projects {
-                    if let Some(at) = &project.at_ {
-                        let content = fs::read_to_string(at)
-                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::project().parse(content.as_bytes())?;
-                        project.projects.append(&mut new_project.projects);
-                        project.rules.append(&mut new_project.rules);
-                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
-                    } else if project.in_ != PathBuf::from(".")
-                        && project.in_.join(".repkg").exists()
-                    {
-                        let at = project.in_.join(".repkg");
-                        let content = fs::read_to_string(&at)
-                            .map_err(|_| eyre!("File '{}' does not exist", at.display()))?;
-                        let mut new_project = parser::project().parse(content.as_bytes())?;
-                        project.projects.append(&mut new_project.projects);
-                        project.rules.append(&mut new_project.rules);
-                        project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
-                    }
-                }
-
-                if let Some(at) = &project.at_ {
-                    let content = fs::read_to_string(at)?;
-                    let mut new_project = parser::project().parse(content.as_bytes())?;
-                    project.projects.append(&mut new_project.projects);
-                    project.rules.append(&mut new_project.rules);
-                    project.in_ = at.canonicalize()?.parent().unwrap().to_path_buf();
-                }
 
                 if no_sandbox {
                     let mut sandbox = None::<SystemCmdProvider>;

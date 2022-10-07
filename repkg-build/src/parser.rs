@@ -1,66 +1,90 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use pom::{
     char_class::{self, *},
     parser::*,
 };
 
+use color_eyre::Result;
+
 use crate::ASTNode;
 
 use repkg_common::{Command, Name, Project, Rule};
 
-pub fn body<'a>() -> Parser<'a, u8, Project> {
-    spaced_newline(call(project).map(|x| ASTNode::Project(x)) | rule().map(|x| ASTNode::Rule(x)))
-        .repeat(0..)
-        .map(|nodes| {
-            let mut projects = BTreeMap::new();
-            let mut imports = vec![];
-            let mut rules = BTreeMap::new();
-            for node in nodes {
-                match node {
-                    ASTNode::Project(proj) => {
-                        projects.insert(proj.name.to_owned(), proj);
-                    }
-                    ASTNode::Import(import) => {
-                        imports.push(import);
-                    }
-                    ASTNode::Rule(rule) => {
-                        rules.insert(rule.name.to_owned(), rule);
-                    }
+pub fn body<'a>() -> Parser<'a, u8, Result<Project>> {
+    spaced_newline(
+        call(project).map(|x| Result::<ASTNode>::Ok(ASTNode::Project(x?)))
+            | rule().map(|x| Ok(ASTNode::Rule(x))),
+    )
+    .repeat(0..)
+    .map(|nodes| {
+        let mut projects = BTreeMap::new();
+        let mut imports = vec![];
+        let mut rules = BTreeMap::new();
+        for node in nodes {
+            match node? {
+                ASTNode::Project(proj) => {
+                    projects.insert(proj.name.to_owned(), proj);
+                }
+                ASTNode::Import(import) => {
+                    imports.push(import);
+                }
+                ASTNode::Rule(rule) => {
+                    rules.insert(rule.name.to_owned(), rule);
                 }
             }
-            Project {
-                projects,
-                rules,
-                name: "root".into(),
-                in_: PathBuf::from("."),
-                at_: None,
-            }
+        }
+        Ok(Project {
+            projects,
+            rules,
+            name: "root".into(),
+            in_: PathBuf::from("."),
         })
+    })
 }
 
-pub fn parser<'a>() -> Parser<'a, u8, Project> {
+pub fn parser<'a>() -> Parser<'a, u8, Result<Project>> {
     body()
 }
 
-pub fn project<'a>() -> Parser<'a, u8, Project> {
+pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
     (seq(b"project") * spaced(id())
         + spaced(seq(b"in") * spaced(string())).opt()
         + spaced(seq(b"at") * spaced(string())).opt()
         + ((sym(b'{') * call(body) - sym(b'}'))
-            | sym(b';').map(|_| Project {
-                name: "".into(),
-                projects: BTreeMap::new(),
-                rules: BTreeMap::new(),
-                in_: PathBuf::from("."),
-                at_: None,
+            | sym(b';').map(|_| {
+                Ok(Project {
+                    name: "".into(),
+                    projects: BTreeMap::new(),
+                    rules: BTreeMap::new(),
+                    in_: PathBuf::from("."),
+                })
             })))
-    .map(|(((name, in_), at_), body)| Project {
-        name,
-        projects: body.projects,
-        rules: body.rules,
-        in_: in_.map(|x| PathBuf::from(x)).unwrap_or(PathBuf::from(".")),
-        at_: at_.map(|x| PathBuf::from(x)),
+    .map(|(((name, in_), at_), body)| {
+        let mut body = body?;
+        if let Some(at) = at_ {
+            let content = fs::read_to_string(at)?;
+            let mut project = parser().parse(content.as_bytes())??;
+
+            body.projects.append(&mut project.projects);
+            body.rules.append(&mut project.rules);
+        }
+        if let Some(in_) = &in_ {
+            let at = PathBuf::from(in_).join(".repkg");
+            if at.exists() {
+                let content = fs::read_to_string(at)?;
+                let mut project = parser().parse(content.as_bytes())??;
+
+                body.projects.append(&mut project.projects);
+                body.rules.append(&mut project.rules);
+            }
+        }
+        Ok(Project {
+            name,
+            projects: body.projects,
+            rules: body.rules,
+            in_: in_.map(|x| PathBuf::from(x)).unwrap_or(PathBuf::from(".")),
+        })
     })
 }
 
@@ -165,7 +189,7 @@ mod tests {
         let program = b"project my-project in \"my-project\" {
             build : $echo TODO
         }";
-        let project = super::project().parse(program).unwrap();
+        let project = super::project().parse(program).unwrap().unwrap();
         assert!(project.name == "my-project".into());
         assert!(project.in_ == PathBuf::from("my-project"));
     }
@@ -181,7 +205,7 @@ mod tests {
                 cargo nextest run
             }
         }";
-        let project = super::project().parse(program).unwrap();
+        let project = super::project().parse(program).unwrap().unwrap();
 
         assert!(project.rules.len() == 2);
 
@@ -227,7 +251,7 @@ mod tests {
             #rust.stable.cargo
         }";
 
-        let result = super::parser().parse(program).unwrap();
+        let result = super::parser().parse(program).unwrap().unwrap();
 
         dbg!(&result);
 

@@ -11,7 +11,7 @@ use color_eyre::{eyre::eyre, Result};
 
 use crate::{
     exec::{cmd_provider::CmdProviderT, CommandT, Executor, ExecutorT},
-    exec_order_resolver::{Resolver, ResolverT},
+    task_order,
 };
 
 // The job of the packager is to run a project,
@@ -39,14 +39,6 @@ impl<'a, C: CmdProviderT<()>> Packager<'a, C> {
             fs::create_dir_all(path)?;
         }
 
-        // let mut sandbox = SandboxCmdProvider::new();
-        // sandbox.serve(
-        //     "output".to_string(),
-        //     OutputCommand {
-        //         out_folder: path.as_ref().to_path_buf(),
-        //     },
-        // );
-
         if let Some(_) = self.sandbox {
             // Do nothing
         } else {
@@ -62,18 +54,9 @@ impl<'a, C: CmdProviderT<()>> Packager<'a, C> {
 
         let executor = Executor::new(self.sandbox.as_ref().unwrap());
 
-        let build_rule = self
-            .project
-            .rules
-            .get(&"build".into())
-            .ok_or(eyre!("No build rule found"))?;
-        let package_rule = self
-            .project
-            .rules
-            .get(&"package".into())
-            .ok_or(eyre!("No package rule found"))?;
-        let mut to_exec = Resolver::get_tasks(build_rule, self.project);
-        to_exec.append(&mut Resolver::get_tasks(package_rule, self.project));
+        let package_rule = "package".into();
+        // let to_exec = Resolver::get_tasks(package_rule, self.project);
+        let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
 
         executor.execute(&to_exec, self.project)?;
 

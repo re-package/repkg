@@ -1,9 +1,9 @@
 use repkg_common::{Name, Project, Rule};
 
 pub mod exec;
-pub mod exec_order_resolver;
 pub mod package;
 pub mod parser;
+pub mod task_order;
 
 #[derive(Debug)]
 pub struct Import {

@@ -10,7 +10,7 @@ pub struct Project {
     pub projects: BTreeMap<Name, Project>,
     pub rules: BTreeMap<Name, Rule>,
     pub in_: PathBuf,
-    pub at_: Option<PathBuf>,
+    // pub at_: Option<PathBuf>,
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Debug, Default)]
@@ -21,6 +21,12 @@ impl<T: ToString> From<T> for Name {
         Self(t.to_string())
     }
 }
+
+// impl ToString for Name {
+//     fn to_string(&self) -> String {
+//         self.0.clone()
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct Rule {

@@ -1,19 +1,15 @@
 use color_eyre::eyre::eyre;
 use repkg_common::Command;
 
-use crate::{
-    exec::cmd_provider::CmdProviderT,
-    exec_order_resolver::{Resolver, ResolverT},
-    parser, Project,
-};
+use crate::{exec::cmd_provider::CmdProviderT, parser, task_order, Project};
 
 pub struct Executor<'a, C: CmdProviderT<()>> {
-    cmd_provider: &'a C,
+    sandbox: &'a C,
 }
 
 impl<'a, C: CmdProviderT<()>> Executor<'a, C> {
-    pub fn new(cmd_provider: &'a C) -> Self {
-        Self { cmd_provider }
+    pub fn new(sandbox: &'a C) -> Self {
+        Self { sandbox }
     }
 }
 
@@ -37,12 +33,8 @@ impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
                 }
 
                 for rule_name in &command.args {
-                    let initial = project.rules.get(&rule_name.into()).ok_or(eyre!(
-                        "Attempted to call rule '{}' for project '{}' but it does not have it",
-                        &rule_name,
-                        &project.name.0
-                    ))?;
-                    let exec_order = Resolver::get_tasks(initial, project);
+                    let initial = rule_name.into();
+                    let exec_order = task_order::calc_task_order(&[&initial], project)?;
 
                     self.execute(&exec_order, project)?
                 }
@@ -51,7 +43,7 @@ impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
             }
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
-                self.cmd_provider
+                self.sandbox
                     .cmd_inner(&command.programs[0], args.as_slice())
             }
             Some('!') => {
@@ -79,7 +71,7 @@ impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
             Some(p) => Err(eyre!("Unsupported prefix '{}'", p)),
             None => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
-                self.cmd_provider
+                self.sandbox
                     .cmd_external(&command.programs[0], args.as_slice())
 
                 // let status = process::Command::new(&command.program)
