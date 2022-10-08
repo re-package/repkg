@@ -4,12 +4,10 @@ use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
-    exec::{
-        cmd_provider::CmdProviderT, sandbox::SandboxCmdProvider,
-        system_cmd_provider::SystemCmdProvider, Executor, ExecutorT,
-    },
+    exec::{Executor, ExecutorT},
     package::Packager,
     parser::{self, project},
+    sandbox::{dry_run::DryRunSandbox, SandboxT},
     task_order,
 };
 
@@ -34,8 +32,8 @@ fn run(cli: &mut Cli) -> Result<()> {
             dry_run,
             no_sandbox,
         } => {
-            let dry_run = cli.dry_run || *dry_run;
-            let no_sandbox = cli.no_sandbox || *no_sandbox;
+            let _dry_run = cli.dry_run || *dry_run;
+            let _no_sandbox = cli.no_sandbox || *no_sandbox;
 
             let content =
                 read_to_string(".repkg").map_err(|_| eyre!("No RePkg package file found"))?;
@@ -59,18 +57,18 @@ fn run(cli: &mut Cli) -> Result<()> {
                 let to_exec = command.into();
                 let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
 
-                // TODO: properly dry run the script
-                if !dry_run {
-                    if !no_sandbox {
-                        let sandbox = SandboxCmdProvider::new();
-                        let executor = Executor::new(&sandbox);
-                        executor.execute(&to_exec, project)?;
-                    } else {
-                        let sandbox = SystemCmdProvider::new();
-                        let executor = Executor::new(&sandbox);
-                        executor.execute(&to_exec, &project)?;
-                    };
-                }
+                let sandbox = DryRunSandbox::new();
+                let executor = Executor::new(&sandbox);
+                executor.execute(&to_exec, &project)?;
+
+                // if !no_sandbox {
+                //     let sandbox = Sandbox::new();
+                //     let executor = Executor::new(&sandbox);
+                //     executor.execute(&to_exec, project)?;
+                // } else {
+                //     let executor = Executor::new(&sandbox);
+                //     executor.execute(&to_exec, &project)?;
+                // };
             }
         }
         Command::Build {
@@ -120,19 +118,20 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
 
+                let mut sandbox = DryRunSandbox::new();
                 if no_sandbox {
-                    let mut sandbox = None::<SystemCmdProvider>;
-                    let mut packager = Packager::new(&project, &mut sandbox);
-                    packager.package_to(&"output/")?;
+                    // let mut sandbox = None::<SystemCmdProvider>;
+                    let packager = Packager::new(&project, &mut sandbox, "output/")?;
+                    packager.package()?;
                     let mut file = OpenOptions::new()
                         .create(true)
                         .write(true)
                         .open("output.tar.gz")?;
                     packager.compress(&mut file)?;
                 } else {
-                    let mut sandbox = None::<SandboxCmdProvider>;
-                    let mut packager = Packager::new(&project, &mut sandbox);
-                    packager.package_to(&"output/")?;
+                    // let mut sandbox = None::<SandboxCmdProvider>;
+                    let packager = Packager::new(&project, &mut sandbox, "output/")?;
+                    packager.package()?;
                     let mut file = OpenOptions::new()
                         .create(true)
                         .write(true)

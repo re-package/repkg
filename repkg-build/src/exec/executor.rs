@@ -1,19 +1,25 @@
 use color_eyre::eyre::eyre;
 use repkg_common::Command;
 
-use crate::{exec::cmd_provider::CmdProviderT, parser, task_order, Project};
+use crate::{
+    parser,
+    sandbox::{FileSystem, SandboxT},
+    task_order, Project,
+};
 
-pub struct Executor<'a, C: CmdProviderT<()>> {
-    sandbox: &'a C,
+pub struct Executor<'a, F: FileSystem, S: SandboxT<'a, F>> {
+    sandbox: &'a S,
+    // Get rid of compiler errors
+    _fs: Option<F>,
 }
 
-impl<'a, C: CmdProviderT<()>> Executor<'a, C> {
-    pub fn new(sandbox: &'a C) -> Self {
-        Self { sandbox }
+impl<'a, S: SandboxT<'a, F>, F: FileSystem> Executor<'a, F, S> {
+    pub fn new(sandbox: &'a S) -> Self {
+        Self { sandbox, _fs: None }
     }
 }
 
-impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
+impl<'a, S: SandboxT<'a, F>, F: FileSystem> super::ExecutorT<'a> for Executor<'a, F, S> {
     fn run_command(&self, command: &Command, project: &'a Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.in_.canonicalize()?)?;
@@ -43,8 +49,7 @@ impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
             }
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
-                self.sandbox
-                    .cmd_inner(&command.programs[0], args.as_slice())
+                self.sandbox.command(&command.programs[0], args.as_slice())
             }
             Some('!') => {
                 let family = os_info::get().family();
@@ -71,8 +76,13 @@ impl<'a, C: CmdProviderT<()>> super::ExecutorT<'a> for Executor<'a, C> {
             Some(p) => Err(eyre!("Unsupported prefix '{}'", p)),
             None => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
+                // self.sandbox
+                //     .cmd_external(&command.programs[0], args.as_slice())
                 self.sandbox
-                    .cmd_external(&command.programs[0], args.as_slice())
+                    .executable(&command.programs[0])?
+                    .args(args)
+                    .spawn()?;
+                Ok(())
 
                 // let status = process::Command::new(&command.program)
                 //     .args(&command.args)

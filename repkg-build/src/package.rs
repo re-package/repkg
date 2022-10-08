@@ -10,60 +10,51 @@ use repkg_common::Project;
 use color_eyre::{eyre::eyre, Result};
 
 use crate::{
-    exec::{cmd_provider::CmdProviderT, CommandT, Executor, ExecutorT},
+    exec::{CommandT, Executor, ExecutorT},
+    sandbox::{FileSystem, SandboxT},
     task_order,
 };
 
 // The job of the packager is to run a project,
 // then bundle all the ouput files into an archive
 // with the package metadata aswell
-pub struct Packager<'a, C: CmdProviderT<()>> {
+pub struct Packager<'a, S: SandboxT<'a, F>, F: FileSystem> {
     project: &'a Project,
     out_folder: Option<PathBuf>,
-    sandbox: &'a mut Option<C>,
+    sandbox: &'a mut S,
+    _fs: Option<F>,
 }
 
-impl<'a, C: CmdProviderT<()>> Packager<'a, C> {
-    pub fn new(project: &'a Project, sandbox: &'a mut Option<C>) -> Self {
-        Self {
+impl<'a, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, S, F> {
+    pub fn new(project: &'a Project, sandbox: &'a mut S, path: impl AsRef<Path>) -> Result<Self> {
+        if !path.as_ref().exists() {
+            fs::create_dir_all(&path)?;
+        }
+        sandbox.reg_cmd(
+            "output",
+            OutputCommand {
+                out_folder: path.as_ref().to_path_buf(),
+            },
+        );
+        Ok(Self {
             project,
             out_folder: None,
             sandbox,
-        }
+            _fs: None,
+        })
     }
 
     /// execute the project and gather outputs into a folder
-    pub fn package_to(&mut self, path: &impl AsRef<Path>) -> Result<&mut Self> {
-        self.out_folder = Some(path.as_ref().to_path_buf());
-        if !path.as_ref().exists() {
-            fs::create_dir_all(path)?;
-        }
-
-        if let Some(_) = self.sandbox {
-            // Do nothing
-        } else {
-            // Create a new sandbox
-            let _ = self.sandbox.insert(C::new());
-            self.sandbox.as_mut().unwrap().serve(
-                "output".to_string(),
-                OutputCommand {
-                    out_folder: path.as_ref().to_path_buf(),
-                },
-            );
-        }
-
-        let executor = Executor::new(self.sandbox.as_ref().unwrap());
-
+    pub fn package(&'a self) -> Result<()> {
         let package_rule = "package".into();
-        // let to_exec = Resolver::get_tasks(package_rule, self.project);
         let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
 
-        executor.execute(&to_exec, self.project)?;
+        Executor::new(self.sandbox).execute(&to_exec, self.project)?;
 
-        Ok(self)
+        Ok(())
     }
 
-    pub fn compress<O: Write>(&mut self, mut buf: O) -> Result<()> {
+    pub fn compress<O: Write>(&self, mut buf: O) -> Result<()> {
         if !self.out_folder.is_some() {
             Err(eyre!("Must be packaged first"))
         } else if let Some(out_folder) = &self.out_folder {

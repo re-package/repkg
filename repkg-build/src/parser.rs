@@ -44,7 +44,7 @@ pub fn body<'a>() -> Parser<'a, u8, Result<Project>> {
 }
 
 pub fn parser<'a>() -> Parser<'a, u8, Result<Project>> {
-    body()
+    body() - end()
 }
 
 pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
