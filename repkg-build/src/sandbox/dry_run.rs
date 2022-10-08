@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, process};
 
-use crate::exec::CommandT;
+use crate::exec::{commands, CommandT};
 
 use super::{FileSystem, IntoFileSystem, SandboxT};
 
@@ -19,7 +19,7 @@ impl<'a> SandboxT<'a, DryRunFS> for DryRunSandbox {
                     files: Default::default(),
                 },
             },
-            commands: Default::default(),
+            commands: commands::commands(),
         }
     }
 

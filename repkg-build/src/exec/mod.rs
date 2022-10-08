@@ -3,12 +3,8 @@ use repkg_common::{Command, Rule};
 
 use crate::Project;
 
-pub mod cmd_provider;
 pub mod executor;
-pub mod sandbox;
-pub mod system_cmd_provider;
 
-use cmd_provider::CmdProviderT;
 pub use executor::*;
 
 pub trait ExecutorT<'a> {
@@ -29,7 +25,7 @@ pub trait CommandT {
     fn call(&self, args: &[&str]) -> Result<()>;
 }
 
-mod commands {
+pub mod commands {
     use std::collections::HashMap;
 
     use color_eyre::Result;
