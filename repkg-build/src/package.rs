@@ -1,7 +1,9 @@
 use std::{
+    cell::RefCell,
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use flate2::{write::GzEncoder, Compression};
@@ -10,7 +12,7 @@ use repkg_common::Project;
 use color_eyre::{eyre::eyre, Result};
 
 use crate::{
-    exec::{CommandT, Executor, ExecutorT},
+    exec::{CommandT, Executor},
     sandbox::{FileSystem, SandboxT},
     task_order,
 };
@@ -18,19 +20,23 @@ use crate::{
 // The job of the packager is to run a project,
 // then bundle all the ouput files into an archive
 // with the package metadata aswell
-pub struct Packager<'a, S: SandboxT<'a, F>, F: FileSystem> {
-    project: &'a Project,
+pub struct Packager<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> {
+    project: &'b Project,
     out_folder: Option<PathBuf>,
-    sandbox: &'a mut S,
-    _fs: Option<F>,
+    sandbox: Rc<RefCell<S>>,
+    _fs: Option<&'a F>,
 }
 
-impl<'a, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, S, F> {
-    pub fn new(project: &'a Project, sandbox: &'a mut S, path: impl AsRef<Path>) -> Result<Self> {
+impl<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
+    pub fn new(
+        project: &'b Project,
+        sandbox: Rc<RefCell<S>>,
+        path: impl AsRef<Path>,
+    ) -> Result<Self> {
         if !path.as_ref().exists() {
             fs::create_dir_all(&path)?;
         }
-        sandbox.reg_cmd(
+        sandbox.borrow_mut().reg_cmd(
             "output",
             OutputCommand {
                 out_folder: path.as_ref().to_path_buf(),
@@ -45,13 +51,15 @@ impl<'a, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, S, F> {
     }
 
     /// execute the project and gather outputs into a folder
-    pub fn package(&'a self) -> Result<()> {
+    pub fn package(&self) -> Result<&Self> {
         let package_rule = "package".into();
         let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
 
-        Executor::new(self.sandbox).execute(&to_exec, self.project)?;
+        let new_sandbox = self.sandbox.clone();
+        let executor = Executor::new(new_sandbox);
+        executor.execute(&to_exec, self.project)?;
 
-        Ok(())
+        Ok(self)
     }
 
     pub fn compress<O: Write>(&self, mut buf: O) -> Result<()> {
@@ -87,8 +95,8 @@ pub struct OutputCommand {
     out_folder: PathBuf,
 }
 
-impl CommandT for OutputCommand {
-    fn call(&self, args: &[&str]) -> Result<()> {
+impl<'a, F: FileSystem, S: SandboxT<'a, F>> CommandT<'a, F, S> for OutputCommand {
+    fn call(&self, _sandbox: &S, args: &[&str]) -> Result<()> {
         if args.len() < 1 {
             Err(eyre!("No args!"))
         } else if args.len() == 1 {

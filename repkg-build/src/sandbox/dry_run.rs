@@ -6,12 +6,12 @@ use super::{FileSystem, IntoFileSystem, SandboxT};
 
 use color_eyre::{eyre::eyre, Result};
 
-pub struct DryRunSandbox {
+pub struct DryRunSandbox<'a> {
     fs: DryRunFS,
-    commands: HashMap<String, Box<dyn CommandT>>,
+    commands: HashMap<String, Box<dyn CommandT<'a, DryRunFS, Self>>>,
 }
 
-impl<'a> SandboxT<'a, DryRunFS> for DryRunSandbox {
+impl<'a> SandboxT<'a, DryRunFS> for DryRunSandbox<'a> {
     fn new() -> Self {
         Self {
             fs: DryRunFS {
@@ -41,21 +41,21 @@ impl<'a> SandboxT<'a, DryRunFS> for DryRunSandbox {
         self.commands
             .get(&program.to_string())
             .ok_or(eyre!("The command '{}' does not exist", program))?
-            .call(args)
+            .call(self, args)
     }
 
-    fn reg_cmd(&mut self, program: &str, cmd: impl CommandT + 'static) {
+    fn reg_cmd(&mut self, program: &str, cmd: impl CommandT<'a, DryRunFS, Self> + 'static) {
         self.commands.insert(program.to_string(), Box::new(cmd));
     }
 }
 
-impl<'a> Default for DryRunSandbox {
+impl<'a> Default for DryRunSandbox<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a> IntoFileSystem<'a, DryRunFS> for DryRunSandbox {
+impl<'a> IntoFileSystem<'a, DryRunFS> for DryRunSandbox<'a> {
     fn into_fs(&'a self) -> &'a DryRunFS {
         &self.fs
     }

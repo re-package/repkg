@@ -7,7 +7,9 @@ pub mod dry_run;
 pub trait SandboxT<'a, F: FileSystem>: IntoFileSystem<'a, F> {
     fn executable(&self, name: &str) -> color_eyre::Result<process::Command>;
     fn command(&self, program: &str, args: &[&str]) -> color_eyre::Result<()>;
-    fn reg_cmd(&mut self, program: &str, cmd: impl CommandT + 'static);
+    fn reg_cmd(&mut self, program: &str, cmd: impl CommandT<'a, F, Self> + 'static)
+    where
+        Self: Sized;
     fn new() -> Self;
 }
 

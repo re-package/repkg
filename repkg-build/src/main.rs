@@ -1,10 +1,14 @@
-use std::fs::{read_to_string, OpenOptions};
+use std::{
+    cell::RefCell,
+    fs::{read_to_string, OpenOptions},
+    rc::Rc,
+};
 
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
-    exec::{Executor, ExecutorT},
+    exec::Executor,
     package::Packager,
     parser::{self, project},
     sandbox::{dry_run::DryRunSandbox, SandboxT},
@@ -57,18 +61,9 @@ fn run(cli: &mut Cli) -> Result<()> {
                 let to_exec = command.into();
                 let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
 
-                let sandbox = DryRunSandbox::new();
-                let executor = Executor::new(&sandbox);
+                let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
+                let executor = Executor::new(sandbox);
                 executor.execute(&to_exec, &project)?;
-
-                // if !no_sandbox {
-                //     let sandbox = Sandbox::new();
-                //     let executor = Executor::new(&sandbox);
-                //     executor.execute(&to_exec, project)?;
-                // } else {
-                //     let executor = Executor::new(&sandbox);
-                //     executor.execute(&to_exec, &project)?;
-                // };
             }
         }
         Command::Build {
@@ -98,7 +93,7 @@ fn run(cli: &mut Cli) -> Result<()> {
             no_sandbox,
         } => {
             let _dry_run = cli.dry_run || *dry_run;
-            let no_sandbox = cli.no_sandbox || *no_sandbox;
+            let _no_sandbox = cli.no_sandbox || *no_sandbox;
 
             let content = read_to_string(".repkg")?;
 
@@ -118,26 +113,13 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
 
-                let mut sandbox = DryRunSandbox::new();
-                if no_sandbox {
-                    // let mut sandbox = None::<SystemCmdProvider>;
-                    let packager = Packager::new(&project, &mut sandbox, "output/")?;
-                    packager.package()?;
-                    let mut file = OpenOptions::new()
-                        .create(true)
-                        .write(true)
-                        .open("output.tar.gz")?;
-                    packager.compress(&mut file)?;
-                } else {
-                    // let mut sandbox = None::<SandboxCmdProvider>;
-                    let packager = Packager::new(&project, &mut sandbox, "output/")?;
-                    packager.package()?;
-                    let mut file = OpenOptions::new()
-                        .create(true)
-                        .write(true)
-                        .open("output.tar.gz")?;
-                    packager.compress(&mut file)?;
-                }
+                let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
+                let packager = Packager::new(project, sandbox, "output/")?;
+                let mut file = OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .open("output.tar.gz")?;
+                packager.package()?.compress(&mut file)?;
             }
         }
     }
