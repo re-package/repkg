@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    env,
     fs::{read_to_string, OpenOptions},
     rc::Rc,
 };
@@ -11,9 +12,10 @@ use repkg_build::{
     exec::Executor,
     package::Packager,
     parser::{self, project},
-    sandbox::{dry_run::DryRunSandbox, SandboxT},
+    sandbox::{dry_run::DryRunSandbox, CmdProvider},
     task_order,
 };
+use repkg_common::repository::Repository;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -61,8 +63,11 @@ fn run(cli: &mut Cli) -> Result<()> {
                 let to_exec = command.into();
                 let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
 
+                // TODO: change repkg-repo to something more useful
+                let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
+
                 let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
-                let executor = Executor::new(sandbox);
+                let executor = Executor::new(sandbox, &repository);
                 executor.execute(&to_exec, &project)?;
             }
         }
@@ -113,8 +118,11 @@ fn run(cli: &mut Cli) -> Result<()> {
                         .ok_or(eyre!("project '{}' does not exist", project))?
                 };
 
+                // TODO: change repkg-repo to something more useful
+                let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
+
                 let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
-                let packager = Packager::new(project, sandbox, "output/")?;
+                let packager = Packager::new(project, sandbox, "output/", repository)?;
                 let mut file = OpenOptions::new()
                     .create(true)
                     .write(true)

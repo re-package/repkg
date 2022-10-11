@@ -3,6 +3,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 pub mod fs_util;
+pub mod repository;
 
 #[derive(Debug, Default)]
 pub struct Project {

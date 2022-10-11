@@ -1,28 +1,37 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    process::{self},
+    rc::Rc,
+};
 
 use color_eyre::{eyre::eyre, Result};
 
-use repkg_common::{Command, Rule};
+use repkg_common::{repository::Repository, Command, Rule};
 
 use crate::{
     parser,
-    sandbox::{FileSystem, SandboxT},
+    sandbox::{CmdProvider, FileSystem},
     task_order, Project,
 };
 
-pub struct Executor<'a, F: FileSystem, S: SandboxT<'a, F>> {
+pub struct Executor<'a, 'b, F: FileSystem, S: CmdProvider<'a, F>> {
     sandbox: Rc<RefCell<S>>,
+    repository: &'b Repository,
     // Get rid of compiler errors
     _fs: Option<&'a F>,
 }
 
-impl<'a, S: SandboxT<'a, F>, F: FileSystem> Executor<'a, F, S> {
-    pub fn new(sandbox: Rc<RefCell<S>>) -> Self {
-        Self { sandbox, _fs: None }
+impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Executor<'a, 'b, F, S> {
+    pub fn new(sandbox: Rc<RefCell<S>>, repository: &'b Repository) -> Self {
+        Self {
+            sandbox,
+            _fs: None,
+            repository,
+        }
     }
 }
 
-impl<'a, S: SandboxT<'a, F>, F: FileSystem> Executor<'a, F, S> {
+impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Executor<'a, 'b, F, S> {
     fn run_command(&self, command: &Command, project: &Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.in_.canonicalize()?)?;
@@ -53,7 +62,7 @@ impl<'a, S: SandboxT<'a, F>, F: FileSystem> Executor<'a, F, S> {
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
                 self.sandbox
-                    .borrow()
+                    .borrow_mut()
                     .command(&command.programs[0], args.as_slice())
             }
             Some('!') => {
@@ -83,11 +92,41 @@ impl<'a, S: SandboxT<'a, F>, F: FileSystem> Executor<'a, F, S> {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
                 // self.sandbox
                 //     .cmd_external(&command.programs[0], args.as_slice())
-                self.sandbox
-                    .borrow()
-                    .executable(&command.programs[0])?
-                    .args(args)
-                    .spawn()?;
+                // self.sandbox
+                //     .borrow()
+                //     .executable(&command.programs[0])?
+                //     .args(args)
+                //     .spawn()?;
+
+                if let Some(path) = self
+                    .repository
+                    .file(format!("{}.exe", command.programs.join("")))?
+                {
+                    // TODO: enforce cross-compilation targets
+                    let status = process::Command::new(path).args(args).status()?;
+                    if !status.success() {
+                        return Err(eyre!(
+                            "process '{}' failed: {}",
+                            command.programs.join(""),
+                            status
+                        ));
+                    }
+                } else if let Some(path) = self.repository.file(command.programs.join(""))? {
+                    let status = process::Command::new(path).args(args).status()?;
+                    if !status.success() {
+                        return Err(eyre!(
+                            "process '{}' failed: {}",
+                            command.programs.join(""),
+                            status
+                        ));
+                    }
+                } else {
+                    return Err(eyre!(
+                        "The command '{}' does not exist",
+                        command.programs.join("")
+                    ));
+                }
+
                 Ok(())
 
                 // let status = process::Command::new(&command.program)

@@ -7,31 +7,33 @@ use std::{
 };
 
 use flate2::{write::GzEncoder, Compression};
-use repkg_common::Project;
+use repkg_common::{repository::Repository, Project};
 
 use color_eyre::{eyre::eyre, Result};
 
 use crate::{
     exec::{CommandT, Executor},
-    sandbox::{FileSystem, SandboxT},
+    sandbox::{CmdProvider, FileSystem},
     task_order,
 };
 
 // The job of the packager is to run a project,
 // then bundle all the ouput files into an archive
 // with the package metadata aswell
-pub struct Packager<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> {
+pub struct Packager<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> {
     project: &'b Project,
     out_folder: Option<PathBuf>,
     sandbox: Rc<RefCell<S>>,
     _fs: Option<&'a F>,
+    repository: Repository,
 }
 
-impl<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
+impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
     pub fn new(
         project: &'b Project,
         sandbox: Rc<RefCell<S>>,
         path: impl AsRef<Path>,
+        repository: Repository,
     ) -> Result<Self> {
         if !path.as_ref().exists() {
             fs::create_dir_all(&path)?;
@@ -47,6 +49,7 @@ impl<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
             out_folder: None,
             sandbox,
             _fs: None,
+            repository,
         })
     }
 
@@ -56,7 +59,7 @@ impl<'a, 'b, S: SandboxT<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
         let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
 
         let new_sandbox = self.sandbox.clone();
-        let executor = Executor::new(new_sandbox);
+        let executor = Executor::new(new_sandbox, &self.repository);
         executor.execute(&to_exec, self.project)?;
 
         Ok(self)
@@ -95,8 +98,8 @@ pub struct OutputCommand {
     out_folder: PathBuf,
 }
 
-impl<'a, F: FileSystem, S: SandboxT<'a, F>> CommandT<'a, F, S> for OutputCommand {
-    fn call(&self, _sandbox: &S, args: &[&str]) -> Result<()> {
+impl<F: FileSystem> CommandT<F> for OutputCommand {
+    fn call(&self, fs: &mut F, args: &[&str]) -> Result<()> {
         if args.len() < 1 {
             Err(eyre!("No args!"))
         } else if args.len() == 1 {
@@ -105,6 +108,7 @@ impl<'a, F: FileSystem, S: SandboxT<'a, F>> CommandT<'a, F, S> for OutputCommand
 
             if from.is_file() {
                 fs::copy(&from, &to)?;
+                fs.copy(&from, &to)?;
             } else if from.is_dir() {
                 copy_dir::copy_dir(&from, &to)?;
             }
