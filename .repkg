@@ -1,28 +1,13 @@
-project repkg in "repkg";
-
-project repkg-build in "repkg-build";
-
-project repkg-common in "repkg-common";
-
-project repkg-macros in "repkg-macros";
-
 build {
-    #repkg build
-    #repkg-build build
+    $echo "Building!"
 }
 
-project package {
-    package {
-        !windows $output target/release/repkg-build.exe
-        !windows $output target/release/repkg.exe
-        !linux $output target/release/repkg-build
-        !linux $output target/release/repkg
-    }
+publish {
+    $friendly_name "RePKG"
+    $id "repkg"
+    $projects "repkg-build" "repkg" "repkg-env" "repkg-shell"
 }
 
-package {
-    #self build
-    #package package
+headers {
+    $cross_compile false
 }
-
-clean : cargo clean
