@@ -1,6 +1,5 @@
 use repkg_common::{Name, Project, Rule};
 
-pub mod cmd_provider;
 pub mod exec;
 pub mod package;
 pub mod parser;

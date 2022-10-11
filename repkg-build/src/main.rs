@@ -1,15 +1,12 @@
 use std::{
-    cell::RefCell,
     env,
     fs::{read_to_string, OpenOptions},
-    rc::Rc,
 };
 
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
-    cmd_provider::{dry_run::DryRunCMD, CmdProvider},
     exec::Executor,
     package::Packager,
     parser::{self, project},
@@ -66,8 +63,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 // TODO: change repkg-repo to something more useful
                 let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
 
-                let sandbox = Rc::new(RefCell::new(DryRunCMD::new()));
-                let executor = Executor::new(sandbox, &repository);
+                let executor = Executor::new(&repository);
                 executor.execute(&to_exec, &project)?;
             }
         }
@@ -121,8 +117,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 // TODO: change repkg-repo to something more useful
                 let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
 
-                let sandbox = Rc::new(RefCell::new(DryRunCMD::new()));
-                let packager = Packager::new(project, sandbox, "output/", repository)?;
+                let packager = Packager::new(project, "output/", repository)?;
                 let mut file = OpenOptions::new()
                     .create(true)
                     .write(true)

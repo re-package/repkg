@@ -1,33 +1,36 @@
 use std::{
-    cell::RefCell,
-    marker::PhantomData,
+    collections::HashMap,
     process::{self},
-    rc::Rc,
 };
 
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_common::{repository::Repository, Command, Rule};
 
-use crate::{cmd_provider::CmdProvider, parser, task_order, Project};
+use crate::{parser, task_order, Project};
 
-pub struct Executor<'a, 'b, S: CmdProvider<'a>> {
-    sandbox: Rc<RefCell<S>>,
-    repository: &'b Repository,
-    _phantom: PhantomData<&'a u8>,
+use super::{commands::commands, CommandT};
+
+pub struct Executor<'a> {
+    repository: &'a Repository,
+    commands: HashMap<String, Box<dyn CommandT>>,
 }
 
-impl<'a, 'b, S: CmdProvider<'a>> Executor<'a, 'b, S> {
-    pub fn new(sandbox: Rc<RefCell<S>>, repository: &'b Repository) -> Self {
+impl<'a> Executor<'a> {
+    pub fn new(repository: &'a Repository) -> Self {
         Self {
-            sandbox,
             repository,
-            _phantom: PhantomData::default(),
+            commands: commands(),
         }
+    }
+
+    pub fn reg_cmd(&mut self, program: &str, cmd: impl CommandT + 'static) -> &mut Self {
+        self.commands.insert(program.to_string(), Box::new(cmd));
+        self
     }
 }
 
-impl<'a, 'b, S: CmdProvider<'a>> Executor<'a, 'b, S> {
+impl<'a> Executor<'a> {
     fn run_command(&self, command: &Command, project: &Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.in_.canonicalize()?)?;
@@ -57,9 +60,14 @@ impl<'a, 'b, S: CmdProvider<'a>> Executor<'a, 'b, S> {
             }
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
-                self.sandbox
-                    .borrow_mut()
-                    .command(&command.programs[0], args.as_slice())
+                // self.sandbox
+                //     .borrow_mut()
+                //     .command(&command.programs[0], args.as_slice())
+                let cmd = self.commands.get(&command.programs[0]).ok_or(eyre!(
+                    "The command '{}' does not exist",
+                    command.programs[0]
+                ))?;
+                cmd.call(args.as_slice())
             }
             Some('!') => {
                 let family = os_info::get().family();

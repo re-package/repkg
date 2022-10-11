@@ -1,9 +1,7 @@
 use std::{
-    cell::RefCell,
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
 use flate2::{write::GzEncoder, Compression};
@@ -12,7 +10,6 @@ use repkg_common::{repository::Repository, Project};
 use color_eyre::{eyre::eyre, Result};
 
 use crate::{
-    cmd_provider::CmdProvider,
     exec::{CommandT, Executor},
     task_order,
 };
@@ -20,33 +17,24 @@ use crate::{
 // The job of the packager is to run a project,
 // then bundle all the ouput files into an archive
 // with the package metadata aswell
-pub struct Packager<'a, S: CmdProvider<'a>> {
+pub struct Packager<'a> {
     project: &'a Project,
     out_folder: Option<PathBuf>,
-    sandbox: Rc<RefCell<S>>,
     repository: Repository,
 }
 
-impl<'a, S: CmdProvider<'a>> Packager<'a, S> {
+impl<'a> Packager<'a> {
     pub fn new(
         project: &'a Project,
-        sandbox: Rc<RefCell<S>>,
         path: impl AsRef<Path>,
         repository: Repository,
     ) -> Result<Self> {
         if !path.as_ref().exists() {
             fs::create_dir_all(&path)?;
         }
-        sandbox.borrow_mut().reg_cmd(
-            "output",
-            OutputCommand {
-                out_folder: path.as_ref().to_path_buf(),
-            },
-        );
         Ok(Self {
             project,
             out_folder: None,
-            sandbox,
             repository,
         })
     }
@@ -56,8 +44,17 @@ impl<'a, S: CmdProvider<'a>> Packager<'a, S> {
         let package_rule = "package".into();
         let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
 
-        let new_sandbox = self.sandbox.clone();
-        let executor = Executor::new(new_sandbox, &self.repository);
+        let mut executor = Executor::new(&self.repository);
+        executor.reg_cmd(
+            "output",
+            OutputCommand {
+                out_folder: self
+                    .out_folder
+                    .as_ref()
+                    .ok_or(eyre!("No package output destination"))?
+                    .clone(),
+            },
+        );
         executor.execute(&to_exec, self.project)?;
 
         Ok(self)
