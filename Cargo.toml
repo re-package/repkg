@@ -5,3 +5,5 @@ members = ["repkg", "repkg-build", "repkg-common", "repkg-macros"]
 color-eyre = "0.6.2"
 lenient_semver = "0.4.2"
 semver = "1.0.14"
+miette = { version = "5.3.0", features = ["fancy"] }
+thiserror = { version = "1.0.37" }

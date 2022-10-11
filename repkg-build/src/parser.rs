@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn project() {
         let program = b"project my-project in \"my-project\" {
-            build : $echo TODO
+            build : $echo blah
         }";
         let project = super::project().parse(program).unwrap().unwrap();
         assert!(project.name == "my-project".into());

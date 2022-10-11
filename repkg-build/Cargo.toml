@@ -15,3 +15,5 @@ tar = "0.4.38"
 flate2 = "1.0.24"
 copy_dir = "0.1.2"
 os_info = { git = "https://github.com/martintc/os_info.git", branch = "feature-os-family", default-features = false }
+miette = { workspace = true }
+thiserror = { workspace = true }
