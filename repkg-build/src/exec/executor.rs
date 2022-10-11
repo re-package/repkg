@@ -132,21 +132,6 @@ impl<'a> Executor<'a> {
                 }
 
                 Ok(())
-
-                // let status = process::Command::new(&command.program)
-                //     .args(&command.args)
-                //     .status()?;
-
-                // if status.success() {
-                //     Ok(())
-                // } else {
-                //     Err(eyre!(
-                //         "Command '{} {}' failed with exit code '{}'",
-                //         command.program,
-                //         command.args.join(" "),
-                //         status.code().unwrap()
-                //     ))
-                // }
             }
         };
         std::env::set_current_dir(&prev_path)?;
