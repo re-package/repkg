@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    marker::PhantomData,
     process::{self},
     rc::Rc,
 };
@@ -8,30 +9,25 @@ use color_eyre::{eyre::eyre, Result};
 
 use repkg_common::{repository::Repository, Command, Rule};
 
-use crate::{
-    parser,
-    sandbox::{CmdProvider, FileSystem},
-    task_order, Project,
-};
+use crate::{cmd_provider::CmdProvider, parser, task_order, Project};
 
-pub struct Executor<'a, 'b, F: FileSystem, S: CmdProvider<'a, F>> {
+pub struct Executor<'a, 'b, S: CmdProvider<'a>> {
     sandbox: Rc<RefCell<S>>,
     repository: &'b Repository,
-    // Get rid of compiler errors
-    _fs: Option<&'a F>,
+    _phantom: PhantomData<&'a u8>,
 }
 
-impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Executor<'a, 'b, F, S> {
+impl<'a, 'b, S: CmdProvider<'a>> Executor<'a, 'b, S> {
     pub fn new(sandbox: Rc<RefCell<S>>, repository: &'b Repository) -> Self {
         Self {
             sandbox,
-            _fs: None,
             repository,
+            _phantom: PhantomData::default(),
         }
     }
 }
 
-impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Executor<'a, 'b, F, S> {
+impl<'a, 'b, S: CmdProvider<'a>> Executor<'a, 'b, S> {
     fn run_command(&self, command: &Command, project: &Project) -> color_eyre::Result<()> {
         let prev_path = std::env::current_dir()?;
         std::env::set_current_dir(&project.in_.canonicalize()?)?;

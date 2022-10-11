@@ -12,25 +12,24 @@ use repkg_common::{repository::Repository, Project};
 use color_eyre::{eyre::eyre, Result};
 
 use crate::{
+    cmd_provider::CmdProvider,
     exec::{CommandT, Executor},
-    sandbox::{CmdProvider, FileSystem},
     task_order,
 };
 
 // The job of the packager is to run a project,
 // then bundle all the ouput files into an archive
 // with the package metadata aswell
-pub struct Packager<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> {
-    project: &'b Project,
+pub struct Packager<'a, S: CmdProvider<'a>> {
+    project: &'a Project,
     out_folder: Option<PathBuf>,
     sandbox: Rc<RefCell<S>>,
-    _fs: Option<&'a F>,
     repository: Repository,
 }
 
-impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
+impl<'a, S: CmdProvider<'a>> Packager<'a, S> {
     pub fn new(
-        project: &'b Project,
+        project: &'a Project,
         sandbox: Rc<RefCell<S>>,
         path: impl AsRef<Path>,
         repository: Repository,
@@ -48,7 +47,6 @@ impl<'a, 'b, S: CmdProvider<'a, F>, F: FileSystem> Packager<'a, 'b, S, F> {
             project,
             out_folder: None,
             sandbox,
-            _fs: None,
             repository,
         })
     }
@@ -98,8 +96,8 @@ pub struct OutputCommand {
     out_folder: PathBuf,
 }
 
-impl<F: FileSystem> CommandT<F> for OutputCommand {
-    fn call(&self, fs: &mut F, args: &[&str]) -> Result<()> {
+impl CommandT for OutputCommand {
+    fn call(&self, args: &[&str]) -> Result<()> {
         if args.len() < 1 {
             Err(eyre!("No args!"))
         } else if args.len() == 1 {
@@ -108,7 +106,6 @@ impl<F: FileSystem> CommandT<F> for OutputCommand {
 
             if from.is_file() {
                 fs::copy(&from, &to)?;
-                fs.copy(&from, &to)?;
             } else if from.is_dir() {
                 copy_dir::copy_dir(&from, &to)?;
             }

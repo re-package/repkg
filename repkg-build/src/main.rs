@@ -9,10 +9,10 @@ use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
 use repkg_build::{
+    cmd_provider::{dry_run::DryRunCMD, CmdProvider},
     exec::Executor,
     package::Packager,
     parser::{self, project},
-    sandbox::{dry_run::DryRunSandbox, CmdProvider},
     task_order,
 };
 use repkg_common::repository::Repository;
@@ -66,7 +66,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 // TODO: change repkg-repo to something more useful
                 let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
 
-                let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
+                let sandbox = Rc::new(RefCell::new(DryRunCMD::new()));
                 let executor = Executor::new(sandbox, &repository);
                 executor.execute(&to_exec, &project)?;
             }
@@ -121,7 +121,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 // TODO: change repkg-repo to something more useful
                 let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
 
-                let sandbox = Rc::new(RefCell::new(DryRunSandbox::new()));
+                let sandbox = Rc::new(RefCell::new(DryRunCMD::new()));
                 let packager = Packager::new(project, sandbox, "output/", repository)?;
                 let mut file = OpenOptions::new()
                     .create(true)
