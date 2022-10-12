@@ -2,8 +2,22 @@
 
 use std::{collections::BTreeMap, path::PathBuf};
 
+use miette::Diagnostic;
+use thiserror::Error;
+
 pub mod fs_util;
 pub mod repository;
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(code(std::io::Error))]
+    IoError(#[from] std::io::Error),
+}
+
+fn io_error(e: std::io::Error) -> Error {
+    Error::IoError(e)
+}
 
 #[derive(Debug, Default)]
 pub struct Project {

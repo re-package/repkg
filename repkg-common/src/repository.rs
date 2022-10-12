@@ -1,9 +1,17 @@
 use std::{
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
-use color_eyre::Result;
+use miette::{Diagnostic, Result};
+use thiserror::Error;
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(code(std::io::Error))]
+    IoError(#[from] io::Error),
+}
 
 pub struct Repository {
     root: PathBuf,
@@ -14,7 +22,7 @@ impl Repository {
         let root = root.as_ref().to_path_buf();
 
         if !root.exists() {
-            fs::create_dir_all(&root)?;
+            fs::create_dir_all(&root).map_err(crate::io_error)?;
         }
 
         Ok(Self { root })
@@ -36,7 +44,7 @@ impl Repository {
     fn bin_folder(&self) -> Result<PathBuf> {
         let path = self.root.join("bin");
         if !path.exists() {
-            fs::create_dir_all(&path)?;
+            fs::create_dir_all(&path).map_err(crate::io_error)?;
         }
         Ok(path)
     }

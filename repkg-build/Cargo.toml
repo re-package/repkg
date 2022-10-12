@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.0.9", features = ["derive"] }
 pom = "3.2.0"
-color-eyre = { workspace = true }
 repkg-common = { path = "../repkg-common" }
 repkg-macros = { path = "../repkg-macros" }
 tar = "0.4.38"

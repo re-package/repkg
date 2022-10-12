@@ -5,11 +5,19 @@ use pom::{
     parser::*,
 };
 
-use color_eyre::Result;
+use miette::{Diagnostic, Result};
+use thiserror::Error;
 
 use crate::ASTNode;
 
 use repkg_common::{Command, Name, Project, Rule};
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(code(repkg_build::parser::parse_error))]
+    ParseError(#[from] pom::Error),
+}
 
 pub fn body<'a>() -> Parser<'a, u8, Result<Project>> {
     spaced_newline(
@@ -63,8 +71,10 @@ pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
     .map(|(((name, in_), at_), body)| {
         let mut body = body?;
         if let Some(at) = at_ {
-            let content = fs::read_to_string(at)?;
-            let mut project = parser().parse(content.as_bytes())??;
+            let content = fs::read_to_string(at).map_err(crate::io_error)?;
+            let mut project = parser()
+                .parse(content.as_bytes())
+                .map_err(|e| Error::ParseError(e))??;
 
             body.projects.append(&mut project.projects);
             body.rules.append(&mut project.rules);
@@ -72,8 +82,10 @@ pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
         if let Some(in_) = &in_ {
             let at = PathBuf::from(in_).join(".repkg");
             if at.exists() {
-                let content = fs::read_to_string(at)?;
-                let mut project = parser().parse(content.as_bytes())??;
+                let content = fs::read_to_string(at).map_err(crate::io_error)?;
+                let mut project = parser()
+                    .parse(content.as_bytes())
+                    .map_err(|e| Error::ParseError(e))??;
 
                 body.projects.append(&mut project.projects);
                 body.rules.append(&mut project.rules);

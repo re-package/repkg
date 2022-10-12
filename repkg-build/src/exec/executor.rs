@@ -1,15 +1,32 @@
 use std::{
     collections::HashMap,
-    process::{self},
+    process::{self, ExitStatus},
 };
 
-use color_eyre::{eyre::eyre, Result};
+use miette::{bail, Diagnostic, Result};
 
 use repkg_common::{repository::Repository, Command, Rule};
+use thiserror::Error;
 
 use crate::{parser, task_order, Project};
 
 use super::{commands::commands, CommandT};
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error("The requested project does not exist: {}", .0)]
+    #[diagnostic(code(repkg_build::executor::ProjectDoesntExist))]
+    ProjectDoesntExist(String),
+    #[error("The command '{}' does not exist", .0)]
+    #[diagnostic(code(repkg_build::executor::CommandDoesntExist))]
+    CommandDoesntExist(String),
+    #[error("Unsupported prefix '{}'", .0)]
+    #[diagnostic(code(repkg_build::executor::UnsupportedPrefix))]
+    UnsupportedPrefix(char),
+    #[error("Process '{}' failed: {}", .0, .1)]
+    #[diagnostic(code(repkg_build::executor::ProcessFailed))]
+    ProcessFailed(String, ExitStatus),
+}
 
 pub struct Executor<'a> {
     repository: &'a Repository,
@@ -31,10 +48,11 @@ impl<'a> Executor<'a> {
 }
 
 impl<'a> Executor<'a> {
-    fn run_command(&self, command: &Command, project: &Project) -> color_eyre::Result<()> {
-        let prev_path = std::env::current_dir()?;
-        std::env::set_current_dir(&project.in_.canonicalize()?)?;
-        let res = match command.prefix {
+    fn run_command(&self, command: &Command, project: &Project) -> Result<()> {
+        let prev_path = std::env::current_dir().map_err(crate::io_error)?;
+        std::env::set_current_dir(&project.in_.canonicalize().map_err(crate::io_error)?)
+            .map_err(crate::io_error)?;
+        match command.prefix {
             Some('#') => {
                 let mut project: &Project = project;
 
@@ -45,7 +63,7 @@ impl<'a> Executor<'a> {
                         project = project
                             .projects
                             .get(&project_name.into())
-                            .ok_or(eyre!("The requested project does not exist"))?;
+                            .ok_or(Error::ProjectDoesntExist(project_name.clone()))?;
                     }
                 }
 
@@ -55,19 +73,17 @@ impl<'a> Executor<'a> {
 
                     self.execute(&exec_order, project)?
                 }
-
-                Ok(())
             }
             Some('$') => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
                 // self.sandbox
                 //     .borrow_mut()
                 //     .command(&command.programs[0], args.as_slice())
-                let cmd = self.commands.get(&command.programs[0]).ok_or(eyre!(
-                    "The command '{}' does not exist",
-                    command.programs[0]
-                ))?;
-                cmd.call(args.as_slice())
+                let cmd = self
+                    .commands
+                    .get(&command.programs[0])
+                    .ok_or(Error::CommandDoesntExist(command.programs[0].clone()))?;
+                cmd.call(args.as_slice())?;
             }
             Some('!') => {
                 let family = os_info::get().family();
@@ -87,55 +103,43 @@ impl<'a> Executor<'a> {
                 }
 
                 let to_parse = command.args.join(" ");
-                let command = parser::command().parse(to_parse.as_bytes())?;
+                let command = parser::command()
+                    .parse(to_parse.as_bytes())
+                    .map_err(|e| crate::parser::Error::ParseError(e))?;
 
-                self.run_command(&command, project)
+                self.run_command(&command, project)?;
             }
-            Some(p) => Err(eyre!("Unsupported prefix '{}'", p)),
+            Some(p) => bail!(Error::UnsupportedPrefix(p)),
             None => {
                 let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
-                // self.sandbox
-                //     .cmd_external(&command.programs[0], args.as_slice())
-                // self.sandbox
-                //     .borrow()
-                //     .executable(&command.programs[0])?
-                //     .args(args)
-                //     .spawn()?;
 
                 if let Some(path) = self
                     .repository
                     .file(format!("{}.exe", command.programs.join("")))?
                 {
                     // TODO: enforce cross-compilation targets
-                    let status = process::Command::new(path).args(args).status()?;
+                    let status = process::Command::new(path)
+                        .args(args)
+                        .status()
+                        .map_err(crate::io_error)?;
                     if !status.success() {
-                        return Err(eyre!(
-                            "process '{}' failed: {}",
-                            command.programs.join(""),
-                            status
-                        ));
+                        bail!(Error::ProcessFailed(command.programs.join(""), status));
                     }
                 } else if let Some(path) = self.repository.file(command.programs.join(""))? {
-                    let status = process::Command::new(path).args(args).status()?;
+                    let status = process::Command::new(path)
+                        .args(args)
+                        .status()
+                        .map_err(crate::io_error)?;
                     if !status.success() {
-                        return Err(eyre!(
-                            "process '{}' failed: {}",
-                            command.programs.join(""),
-                            status
-                        ));
+                        bail!(Error::ProcessFailed(command.programs.join(""), status))
                     }
                 } else {
-                    return Err(eyre!(
-                        "The command '{}' does not exist",
-                        command.programs.join("")
-                    ));
+                    bail!(Error::CommandDoesntExist(command.programs.join("")));
                 }
-
-                Ok(())
             }
         };
-        std::env::set_current_dir(&prev_path)?;
-        res
+        std::env::set_current_dir(&prev_path).map_err(crate::io_error)?;
+        Ok(())
     }
 
     pub fn execute(&self, rules: &Vec<&Rule>, project: &Project) -> Result<()> {

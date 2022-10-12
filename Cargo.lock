@@ -119,33 +119,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "color-eyre"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a667583cca8c4f8436db8de46ea8233c42a7d9ae424a82d338f2e4675229204"
-dependencies = [
- "backtrace",
- "color-spantrace",
- "eyre",
- "indenter",
- "once_cell",
- "owo-colors",
- "tracing-error",
-]
-
-[[package]]
-name = "color-spantrace"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ba75b3d9449ecdccb27ecbc479fdc0b87fa2dd43d2f8298f9bf0e59aacc8dce"
-dependencies = [
- "once_cell",
- "owo-colors",
- "tracing-core",
- "tracing-error",
-]
-
-[[package]]
 name = "copy_dir"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -161,16 +134,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b540bd8bc810d3885c6ea91e2018302f68baba2129ab3e88f32389ee9370880d"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "eyre"
-version = "0.6.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c2b6b5a29c02cdc822728b7d7b8ae1bab3e3b05d44522770ddd49722eeac7eb"
-dependencies = [
- "indenter",
- "once_cell",
 ]
 
 [[package]]
@@ -237,12 +200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indenter"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
-
-[[package]]
 name = "is_ci"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -257,12 +214,6 @@ dependencies = [
  "winapi 0.2.8",
  "winapi-build",
 ]
-
-[[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lenient_semver"
@@ -391,12 +342,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
-name = "pin-project-lite"
-version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0a7ae3ac2f1173085d398531c705756c94a4c56843785df85a60c1a0afac116"
-
-[[package]]
 name = "pom"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -479,7 +424,6 @@ name = "repkg-build"
 version = "0.1.0"
 dependencies = [
  "clap",
- "color-eyre",
  "copy_dir",
  "flate2",
  "miette",
@@ -495,9 +439,10 @@ dependencies = [
 name = "repkg-common"
 version = "0.1.0"
 dependencies = [
- "color-eyre",
  "lenient_semver",
+ "miette",
  "semver",
+ "thiserror",
 ]
 
 [[package]]
@@ -515,15 +460,6 @@ name = "semver"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
-
-[[package]]
-name = "sharded-slab"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
-dependencies = [
- "lazy_static",
-]
 
 [[package]]
 name = "smawk"
@@ -638,57 +574,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thread_local"
-version = "1.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5516c27b78311c50bf42c071425c560ac799b11c30b31f87e3081965fe5e0180"
-dependencies = [
- "once_cell",
-]
-
-[[package]]
-name = "tracing"
-version = "0.1.36"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fce9567bd60a67d08a16488756721ba392f24f29006402881e43b19aac64307"
-dependencies = [
- "cfg-if",
- "pin-project-lite",
- "tracing-core",
-]
-
-[[package]]
-name = "tracing-core"
-version = "0.1.29"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aeea4303076558a00714b823f9ad67d58a3bbda1df83d8827d21193156e22f7"
-dependencies = [
- "once_cell",
- "valuable",
-]
-
-[[package]]
-name = "tracing-error"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d686ec1c0f384b1277f097b2f279a2ecc11afe8c133c1aabf036a27cb4cd206e"
-dependencies = [
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "tracing-subscriber"
-version = "0.3.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60db860322da191b40952ad9affe65ea23e7dd6a5c442c2c42865810c6ab8e6b"
-dependencies = [
- "sharded-slab",
- "thread_local",
- "tracing-core",
-]
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -709,12 +594,6 @@ name = "unicode-width"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
-
-[[package]]
-name = "valuable"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
 
 [[package]]
 name = "version_check"

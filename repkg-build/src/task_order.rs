@@ -1,6 +1,14 @@
-use color_eyre::{eyre::eyre, Result};
+use miette::{Diagnostic, Result};
 
 use repkg_common::{Name, Project, Rule};
+use thiserror::Error;
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error("Attempted to get tasks for rule '{}' but it does not exist", .0)]
+    #[diagnostic(code(repkg_build::task_order::RuleDoesntExist))]
+    RuleDoesntExist(String),
+}
 
 pub fn calc_task_order<'a>(tasks: &[&'a Name], context: &'a Project) -> Result<Vec<&'a Rule>> {
     let mut task_order = vec![];
@@ -15,10 +23,10 @@ pub fn calc_task_order<'a>(tasks: &[&'a Name], context: &'a Project) -> Result<V
 fn get_tasks<'a>(initial: &'a Name, project: &'a Project) -> Result<Vec<&'a Rule>> {
     let mut exec_before = vec![];
 
-    let initial_rule = project.rules.get(initial).ok_or(eyre!(
-        "Attempted to get tasks for rule '{}' but it does not exist",
-        initial.0
-    ))?;
+    let initial_rule = project
+        .rules
+        .get(initial)
+        .ok_or(Error::RuleDoesntExist(initial.0.clone()))?;
 
     exec_before.push(initial_rule);
 

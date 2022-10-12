@@ -1,8 +1,7 @@
-use color_eyre::Result;
-
 pub mod executor;
-
 pub use executor::*;
+
+use miette::Result;
 
 pub trait CommandT {
     fn call(&self, args: &[&str]) -> Result<()>;
@@ -11,7 +10,7 @@ pub trait CommandT {
 pub mod commands {
     use std::collections::HashMap;
 
-    use color_eyre::Result;
+    use miette::Result;
 
     use super::CommandT;
 

@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
-use color_eyre::{eyre::eyre, Result};
+use miette::{Diagnostic, IntoDiagnostic, Result};
 
 use repkg_build::{
     exec::Executor,
@@ -13,15 +13,24 @@ use repkg_build::{
     task_order,
 };
 use repkg_common::repository::Repository;
+use thiserror::Error;
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
-
     let mut cli = Cli::parse();
 
     run(&mut cli)?;
 
     Ok(())
+}
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum Error {
+    #[error("No RePKG package file found")]
+    #[diagnostic(code(repkg_build::no_package_file))]
+    NoPackageFile,
+    #[error("Project '{}' does not exist", .0)]
+    #[diagnostic(code(repkg_build::project_doesnt_exist))]
+    ProjectDoesntExist(String),
 }
 
 fn run(cli: &mut Cli) -> Result<()> {
@@ -38,10 +47,11 @@ fn run(cli: &mut Cli) -> Result<()> {
             let _dry_run = cli.dry_run || *dry_run;
             let _no_sandbox = cli.no_sandbox || *no_sandbox;
 
-            let content =
-                read_to_string(".repkg").map_err(|_| eyre!("No RePkg package file found"))?;
+            let content = read_to_string(".repkg").map_err(|_| Error::NoPackageFile)?;
 
-            let mut program = parser::parser().parse(content.as_bytes())??;
+            let mut program = parser::parser()
+                .parse(content.as_bytes())
+                .into_diagnostic()??;
 
             for project in cli
                 .projects
@@ -54,14 +64,15 @@ fn run(cli: &mut Cli) -> Result<()> {
                     program
                         .projects
                         .get_mut(&project.into())
-                        .ok_or(eyre!("project '{}' does not exist", project))?
+                        .ok_or(Error::ProjectDoesntExist(project.to_string()))?
                 };
 
                 let to_exec = command.into();
                 let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
 
                 // TODO: change repkg-repo to something more useful
-                let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
+                let repository =
+                    Repository::new(env::current_dir().into_diagnostic()?.join("repkg-repo"))?;
 
                 let executor = Executor::new(&repository);
                 executor.execute(&to_exec, &project)?;
@@ -96,9 +107,9 @@ fn run(cli: &mut Cli) -> Result<()> {
             let _dry_run = cli.dry_run || *dry_run;
             let _no_sandbox = cli.no_sandbox || *no_sandbox;
 
-            let content = read_to_string(".repkg")?;
+            let content = read_to_string(".repkg").into_diagnostic()?;
 
-            let mut program = project().parse(content.as_bytes())??;
+            let mut program = project().parse(content.as_bytes()).into_diagnostic()??;
 
             for project in cli
                 .projects
@@ -111,17 +122,19 @@ fn run(cli: &mut Cli) -> Result<()> {
                     program
                         .projects
                         .get_mut(&project.into())
-                        .ok_or(eyre!("project '{}' does not exist", project))?
+                        .ok_or(Error::ProjectDoesntExist(project.to_string()))?
                 };
 
                 // TODO: change repkg-repo to something more useful
-                let repository = Repository::new(env::current_dir()?.join("repkg-repo"))?;
+                let repository =
+                    Repository::new(env::current_dir().into_diagnostic()?.join("repkg-repo"))?;
 
                 let packager = Packager::new(project, "output/", repository)?;
                 let mut file = OpenOptions::new()
                     .create(true)
                     .write(true)
-                    .open("output.tar.gz")?;
+                    .open("output.tar.gz")
+                    .into_diagnostic()?;
                 packager.package()?.compress(&mut file)?;
             }
         }
