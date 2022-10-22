@@ -455,7 +455,21 @@ name = "repkg"
 version = "0.1.0"
 
 [[package]]
-name = "repkg-build"
+name = "repkg-common"
+version = "0.1.0"
+dependencies = [
+ "lenient_semver",
+ "miette",
+ "semver",
+ "thiserror",
+]
+
+[[package]]
+name = "repkg-macros"
+version = "0.1.0"
+
+[[package]]
+name = "repkg-script"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -472,20 +486,6 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-repkg",
 ]
-
-[[package]]
-name = "repkg-common"
-version = "0.1.0"
-dependencies = [
- "lenient_semver",
- "miette",
- "semver",
- "thiserror",
-]
-
-[[package]]
-name = "repkg-macros"
-version = "0.1.0"
 
 [[package]]
 name = "rustc-demangle"

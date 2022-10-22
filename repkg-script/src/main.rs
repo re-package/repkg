@@ -6,10 +6,10 @@ use std::{
 use clap::{Parser, Subcommand};
 use miette::{Diagnostic, IntoDiagnostic, Result};
 
-use repkg_build::{
+use repkg_common::repository::Repository;
+use repkg_script::{
     exec::Executor, package::Packager, parser::project, parser_new::parser, task_order,
 };
-use repkg_common::repository::Repository;
 use thiserror::Error;
 
 fn main() -> Result<()> {
