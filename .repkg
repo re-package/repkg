@@ -1,5 +1,5 @@
-build : $cargo build
+import cargo.tasks.*
 
-test : #cargo build
-
-project my-project {}
+    dependencies =[
+        'gtk',
+    ]

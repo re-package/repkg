@@ -17,3 +17,5 @@ os_info = { git = "https://github.com/martintc/os_info.git", branch = "feature-o
 miette = { workspace = true }
 thiserror = { workspace = true }
 logos = "0.12.1"
+tree-sitter-repkg = { version = "0.0.1", path = "../tree-sitter-repkg" }
+tree-sitter = "0.20.9"

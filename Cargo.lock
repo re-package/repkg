@@ -469,6 +469,8 @@ dependencies = [
  "repkg-macros",
  "tar",
  "thiserror",
+ "tree-sitter",
+ "tree-sitter-repkg",
 ]
 
 [[package]]
