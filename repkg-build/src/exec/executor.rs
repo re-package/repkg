@@ -5,7 +5,7 @@ use std::{
 
 use miette::{bail, Diagnostic, Result};
 
-use repkg_common::{repository::Repository, Command, Rule};
+use repkg_common::{repository::Repository, Command, Task};
 use thiserror::Error;
 
 use crate::{parser, task_order, Project};
@@ -62,27 +62,27 @@ impl<'a> Executor<'a> {
                     } else {
                         project = project
                             .projects
-                            .get(&project_name.into())
-                            .ok_or(Error::ProjectDoesntExist(project_name.clone()))?;
+                            .get(project_name)
+                            .ok_or_else(|| Error::ProjectDoesntExist(project_name.clone()))?;
                     }
                 }
 
-                for rule_name in &command.args {
-                    let initial = rule_name.into();
-                    let exec_order = task_order::calc_task_order(&[&initial], project)?;
+                for task_name in &command.args {
+                    let tasks = &[task_name];
+                    let exec_order = task_order::calc_task_order(tasks, project)?;
 
                     self.execute(&exec_order, project)?
                 }
             }
             Some('$') => {
-                let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
+                let args: &Vec<&str> = &(command.args).iter().map(|x| x.as_str()).collect();
                 // self.sandbox
                 //     .borrow_mut()
                 //     .command(&command.programs[0], args.as_slice())
                 let cmd = self
                     .commands
                     .get(&command.programs[0])
-                    .ok_or(Error::CommandDoesntExist(command.programs[0].clone()))?;
+                    .ok_or_else(|| Error::CommandDoesntExist(command.programs[0].clone()))?;
                 cmd.call(args.as_slice())?;
             }
             Some('!') => {
@@ -105,13 +105,13 @@ impl<'a> Executor<'a> {
                 let to_parse = command.args.join(" ");
                 let command = parser::command()
                     .parse(to_parse.as_bytes())
-                    .map_err(|e| crate::parser::Error::ParseError(e))?;
+                    .map_err(crate::parser::Error::ParseError)?;
 
                 self.run_command(&command, project)?;
             }
             Some(p) => bail!(Error::UnsupportedPrefix(p)),
             None => {
-                let args: &Vec<&str> = &(&command.args).into_iter().map(|x| x.as_str()).collect();
+                let args: &Vec<&str> = &(command.args).iter().map(|x| x.as_str()).collect();
 
                 if let Some(path) = self
                     .repository
@@ -142,7 +142,7 @@ impl<'a> Executor<'a> {
         Ok(())
     }
 
-    pub fn execute(&self, rules: &Vec<&Rule>, project: &Project) -> Result<()> {
+    pub fn execute(&self, rules: &Vec<&Task>, project: &Project) -> Result<()> {
         for rule in rules {
             for command in &rule.cmds {
                 self.run_command(command, project)?;

@@ -22,28 +22,24 @@ pub fn relocate_file(
     to: impl AsRef<Path>,
 ) -> Result<PathBuf> {
     let parent_dir = from.as_ref().to_str().ok_or(Error::StringConversionError)?;
-    let new_path: PathBuf;
 
-    if parent_dir.is_contained_in(
+    let new_path = if parent_dir.is_contained_in(
         path.as_ref()
             .canonicalize()
             .map_err(crate::io_error)?
             .to_str()
             .ok_or(Error::StringConversionError)?,
     ) {
-        new_path = to
-            .as_ref()
-            .join(
-                path.as_ref()
-                    .canonicalize()
-                    .map_err(crate::io_error)?
-                    .strip_prefix(parent_dir)
-                    .map_err(|e| Error::StripPrefixError(e))?,
-            )
-            .into();
+        to.as_ref().join(
+            path.as_ref()
+                .canonicalize()
+                .map_err(crate::io_error)?
+                .strip_prefix(parent_dir)
+                .map_err(Error::StripPrefixError)?,
+        )
     } else {
-        new_path = to.as_ref().join(path.as_ref()).into();
-    }
+        to.as_ref().join(path.as_ref())
+    };
 
     Ok(new_path)
 }

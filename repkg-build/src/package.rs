@@ -48,8 +48,7 @@ impl<'a> Packager<'a> {
 
     /// execute the project and gather outputs into a folder
     pub fn package(&self) -> Result<&Self> {
-        let package_rule = "package".into();
-        let to_exec = task_order::calc_task_order(&[&package_rule], self.project)?;
+        let to_exec = task_order::calc_task_order(&["package"], self.project)?;
 
         let mut executor = Executor::new(&self.repository);
         executor.reg_cmd(
@@ -64,7 +63,7 @@ impl<'a> Packager<'a> {
     }
 
     pub fn compress<O: Write>(&self, mut buf: O) -> Result<()> {
-        if !self.out_folder.is_some() {
+        if self.out_folder.is_none() {
             bail!(Error::NotPackaged)
         } else if let Some(out_folder) = &self.out_folder {
             let mut archive = tar::Builder::new(&mut buf);
@@ -74,12 +73,12 @@ impl<'a> Packager<'a> {
 
                 if entry.is_dir() {
                     archive
-                        .append_dir_all(&entry.file_name().unwrap(), &entry)
+                        .append_dir_all(entry.file_name().unwrap(), &entry)
                         .map_err(crate::io_error)?;
                 } else if entry.is_file() {
                     archive
                         .append_file(
-                            &entry.file_name().unwrap(),
+                            entry.file_name().unwrap(),
                             &mut File::open(&entry).map_err(crate::io_error)?,
                         )
                         .map_err(crate::io_error)?;
@@ -127,7 +126,7 @@ mod output {
 
     impl CommandT for OutputCommand {
         fn call(&self, args: &[&str]) -> Result<()> {
-            if args.len() < 1 {
+            if args.is_empty() {
                 bail!(Error::NoArgs)
             } else if args.len() == 1 {
                 let from = PathBuf::from(args[0]);

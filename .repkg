@@ -1,28 +1,5 @@
-project repkg in "repkg";
+build : $cargo build
 
-project repkg-build in "repkg-build";
+test : #cargo build
 
-project repkg-common in "repkg-common";
-
-project repkg-macros in "repkg-macros";
-
-build {
-    #repkg build
-    #repkg-build build
-}
-
-project package {
-    package {
-        !windows $output target/release/repkg-build.exe
-        !windows $output target/release/repkg.exe
-        !linux $output target/release/repkg-build
-        !linux $output target/release/repkg
-    }
-}
-
-package {
-    #self build
-    #package package
-}
-
-clean : cargo clean
+project my-project {}

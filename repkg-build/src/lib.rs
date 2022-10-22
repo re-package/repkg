@@ -1,10 +1,11 @@
 use miette::Diagnostic;
-use repkg_common::{Name, Project, Rule};
+use repkg_common::{Project, Task};
 use thiserror::Error;
 
 pub mod exec;
 pub mod package;
 pub mod parser;
+pub mod parser_new;
 pub mod task_order;
 
 #[derive(Error, Diagnostic, Debug)]
@@ -21,14 +22,14 @@ fn io_error(e: std::io::Error) -> Error {
 #[derive(Debug)]
 pub struct Import {
     pub url: String,
-    pub items: Vec<Name>,
+    pub items: Vec<String>,
 }
 
 #[derive(Debug)]
 pub enum ASTNode {
     Project(Project),
     Import(Import),
-    Rule(Rule),
+    Rule(Task),
 }
 
 #[derive(Debug, PartialEq)]
@@ -39,12 +40,12 @@ pub enum Value {
 
 #[derive(Debug)]
 pub struct Function {
-    pub name: Name,
+    pub name: String,
     pub body: Vec<Value>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
-    pub func_name: Name,
+    pub func_name: String,
     pub arguments: Vec<Value>,
 }

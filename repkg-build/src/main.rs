@@ -7,15 +7,14 @@ use clap::{Parser, Subcommand};
 use miette::{Diagnostic, IntoDiagnostic, Result};
 
 use repkg_build::{
-    exec::Executor,
-    package::Packager,
-    parser::{self, project},
-    task_order,
+    exec::Executor, package::Packager, parser::project, parser_new::parser, task_order,
 };
 use repkg_common::repository::Repository;
 use thiserror::Error;
 
 fn main() -> Result<()> {
+    // parser_new::parser::Parser::new(&fs::read_to_string(".repkg").into_diagnostic()?).parse()?;
+
     let mut cli = Cli::parse();
 
     run(&mut cli)?;
@@ -49,9 +48,7 @@ fn run(cli: &mut Cli) -> Result<()> {
 
             let content = read_to_string(".repkg").map_err(|_| Error::NoPackageFile)?;
 
-            let mut program = parser::parser()
-                .parse(content.as_bytes())
-                .into_diagnostic()??;
+            let mut program = parser::Parser::new(content.as_str()).parse()?;
 
             for project in cli
                 .projects
@@ -63,19 +60,21 @@ fn run(cli: &mut Cli) -> Result<()> {
                 } else {
                     program
                         .projects
-                        .get_mut(&project.into())
-                        .ok_or(Error::ProjectDoesntExist(project.to_string()))?
+                        .get_mut(project)
+                        .ok_or_else(|| Error::ProjectDoesntExist(project.to_string()))?
                 };
 
-                let to_exec = command.into();
-                let to_exec = task_order::calc_task_order(&[&to_exec], &project)?;
+                dbg!(&project);
+
+                let to_exec = [command];
+                let to_exec = task_order::calc_task_order(&to_exec, project)?;
 
                 // TODO: change repkg-repo to something more useful
                 let repository =
                     Repository::new(env::current_dir().into_diagnostic()?.join("repkg-repo"))?;
 
                 let executor = Executor::new(&repository);
-                executor.execute(&to_exec, &project)?;
+                executor.execute(&to_exec, project)?;
             }
         }
         Command::Build {
@@ -121,8 +120,8 @@ fn run(cli: &mut Cli) -> Result<()> {
                 } else {
                     program
                         .projects
-                        .get_mut(&project.into())
-                        .ok_or(Error::ProjectDoesntExist(project.to_string()))?
+                        .get_mut(project)
+                        .ok_or_else(|| Error::ProjectDoesntExist(project.to_string()))?
                 };
 
                 // TODO: change repkg-repo to something more useful

@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use crate::ASTNode;
 
-use repkg_common::{Command, Name, Project, Rule};
+use repkg_common::{Command, Project, Task};
 
 #[derive(Error, Diagnostic, Debug)]
 pub enum Error {
@@ -74,7 +74,7 @@ pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
             let content = fs::read_to_string(at).map_err(crate::io_error)?;
             let mut project = parser()
                 .parse(content.as_bytes())
-                .map_err(|e| Error::ParseError(e))??;
+                .map_err(Error::ParseError)??;
 
             body.projects.append(&mut project.projects);
             body.rules.append(&mut project.rules);
@@ -85,7 +85,7 @@ pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
                 let content = fs::read_to_string(at).map_err(crate::io_error)?;
                 let mut project = parser()
                     .parse(content.as_bytes())
-                    .map_err(|e| Error::ParseError(e))??;
+                    .map_err(Error::ParseError)??;
 
                 body.projects.append(&mut project.projects);
                 body.rules.append(&mut project.rules);
@@ -95,24 +95,24 @@ pub fn project<'a>() -> Parser<'a, u8, Result<Project>> {
             name,
             projects: body.projects,
             rules: body.rules,
-            in_: in_.map(|x| PathBuf::from(x)).unwrap_or(PathBuf::from(".")),
+            in_: in_.map(PathBuf::from).unwrap_or_else(|| PathBuf::from(".")),
         })
     })
 }
 
-fn rule<'a>() -> Parser<'a, u8, Rule> {
+fn rule<'a>() -> Parser<'a, u8, Task> {
     (spaced(id())
         + ((sym(b'{') * spaced_newline(command()).repeat(1..) - space() - sym(b'}'))
             | (space() * sym(b':') * spaced(command()).map(|x| vec![x]))))
-    .map(|(name, cmds)| Rule { name, cmds })
+    .map(|(name, cmds)| Task { name, cmds })
 }
 
 pub fn command<'a>() -> Parser<'a, u8, Command> {
     (spaced((sym(b'#') | sym(b'$') | sym(b'!')).opt() + (sym(b'.').opt() * id()).repeat(1..))
-        + spaced(string().map(|x| format!("{}", x)) | id().map(|x| x.0)).repeat(0..))
+        + spaced(string() | id().map(|x| x)).repeat(0..))
     .map(|((prefix, programs), args)| Command {
         prefix: prefix.map(|x| char::from_u32(x as u32).unwrap()),
-        programs: programs.into_iter().map(|x| x.0).collect(),
+        programs: programs.into_iter().collect(),
         args,
     })
 }
@@ -122,16 +122,10 @@ fn string<'a>() -> Parser<'a, u8, String> {
         .map(|bytes| String::from_utf8(bytes).unwrap())
 }
 
-fn id<'a>() -> Parser<'a, u8, Name> {
+fn id<'a>() -> Parser<'a, u8, String> {
     ((is_a(alpha) | sym(b'-') | sym(b'/') | sym(b'$') | sym(b'!') | sym(b'#'))
         + (is_a(alphanum) | sym(b'-') | sym(b'/') | sym(b'_')).repeat(0..))
-    .map(|(first, rest)| {
-        Name(format!(
-            "{}{}",
-            first as char,
-            String::from_utf8(rest).unwrap()
-        ))
-    })
+    .map(|(first, rest)| format!("{}{}", first as char, String::from_utf8(rest).unwrap()))
 }
 
 fn spaced<'a, T: 'a>(parser: Parser<'a, u8, T>) -> Parser<'a, u8, T> {
@@ -176,7 +170,7 @@ mod tests {
         }";
         let rule = super::rule().parse(program).unwrap();
 
-        assert!(rule.name == "build".into());
+        assert!(rule.name == "build".to_string());
         assert!(rule.cmds.len() == 2);
     }
 
@@ -185,7 +179,7 @@ mod tests {
         let program = b"build : cargo build";
         let rule = super::rule().parse(program).unwrap();
 
-        assert!(rule.name == "build".into());
+        assert!(rule.name == "build".to_string());
         assert!(
             rule.cmds
                 == vec![Command {
@@ -202,7 +196,7 @@ mod tests {
             build : $echo blah
         }";
         let project = super::project().parse(program).unwrap().unwrap();
-        assert!(project.name == "my-project".into());
+        assert!(project.name == "my-project".to_string());
         assert!(project.in_ == PathBuf::from("my-project"));
     }
 
@@ -224,11 +218,11 @@ mod tests {
         assert!(project
             .rules
             .iter()
-            .any(|(name, _rule)| name == &"build".into()));
+            .any(|(name, _rule)| name == &"build".to_string()));
         assert!(project
             .rules
             .iter()
-            .any(|(name, _rule)| name == &"test".into()));
+            .any(|(name, _rule)| name == &"test".to_string()));
     }
 
     #[test]
