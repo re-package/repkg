@@ -1,7 +1,3 @@
-// Dependencies
-dependencies = [
-    'gtk@4',
-    'iced.rs'
-]
-
-version = 3
+build {
+    version = 14
+}

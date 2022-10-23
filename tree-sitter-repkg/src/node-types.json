@@ -23,6 +23,33 @@
     }
   },
   {
+    "type": "body",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "command",
+          "named": true
+        },
+        {
+          "type": "import_expr",
+          "named": true
+        },
+        {
+          "type": "namespace",
+          "named": true
+        },
+        {
+          "type": "variable_def",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "command",
     "named": true,
     "fields": {
@@ -105,7 +132,17 @@
     "type": "namespace",
     "named": true,
     "fields": {
-      "namespace_name": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "body",
+            "named": true
+          }
+        ]
+      },
+      "id": {
         "multiple": false,
         "required": true,
         "types": [
@@ -115,28 +152,6 @@
           }
         ]
       }
-    },
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "command",
-          "named": true
-        },
-        {
-          "type": "import_expr",
-          "named": true
-        },
-        {
-          "type": "namespace",
-          "named": true
-        },
-        {
-          "type": "variable_def",
-          "named": true
-        }
-      ]
     }
   },
   {
@@ -310,13 +325,5 @@
   {
     "type": "wildcard",
     "named": true
-  },
-  {
-    "type": "{",
-    "named": false
-  },
-  {
-    "type": "}",
-    "named": false
   }
 ]

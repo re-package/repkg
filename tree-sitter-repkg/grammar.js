@@ -13,7 +13,11 @@ module.exports = grammar({
             $._expr,
             repeat($._expr),
         ),
-
+        body: $ => seq(
+            $._expr,
+            repeat($._expr),
+        ),
+        
         _expr: $ => choice(
             seq($.command, $._newline),
             $.namespace,
@@ -37,10 +41,10 @@ module.exports = grammar({
         ),
 
         namespace: $ => seq(
-            field('namespace_name', $.identifier),
-            '{',
-            $._body,
-            '}',
+            field('id', $.identifier),
+            $._left_curly_brace,
+            field('body', $.body),
+            $._right_curly_brace,
         ),
 
         command: $ => seq(
@@ -134,6 +138,8 @@ module.exports = grammar({
         ),
         _left_square_bracket: $ => token('['),
         _right_square_bracket: $ => token(']'),
+        _left_curly_brace: $ => token('{'),
+        _right_curly_brace: $ => token('}'),
         _comma: $ => token(','),
         _dot: $ => token('.'),
         _single_quotation_mark: $ => token('\''),

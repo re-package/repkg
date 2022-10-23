@@ -49,8 +49,14 @@ impl TreeSitterExecutor {
 
     pub fn walk(&self) -> Result<()> {
         let root_node = self.tree.root_node();
-        let mut cursor = root_node.walk();
-        for child in root_node.children(&mut cursor) {
+        self.walk_node(root_node)?;
+
+        Ok(())
+    }
+
+    fn walk_node(&self, node: Node) -> Result<()> {
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
             self.handle_node(child)?;
         }
 
@@ -65,9 +71,26 @@ impl TreeSitterExecutor {
             "variable_def" => {
                 self.handle_variable_def(node)?;
             }
+            "namespace" => {
+                self.handle_namespace(node)?;
+            }
+            "command" => {
+                todo!()
+            }
             "comment" => {}
             a => bail!(UnknownNodeType(a)),
         }
+        Ok(())
+    }
+
+    fn handle_namespace(&self, node: Node) -> Result<()> {
+        let id = self.get_id(node)?;
+        dbg!(&id);
+
+        println!("Namespace: {id}");
+
+        self.walk_node(node)?;
+
         Ok(())
     }
 
@@ -78,13 +101,20 @@ impl TreeSitterExecutor {
     }
 
     fn handle_variable_def(&self, node: Node) -> Result<()> {
-        let id = node.child_by_field_name("id").ok_or(MissingField("id"))?;
+        let id = self.get_id(node)?;
         let val =
             self.get_primitive(node.child_by_field_name("val").ok_or(MissingField("val"))?)?;
-        let name = id.utf8_text(self.source.as_bytes()).map_err(Utf8Error)?;
-        self.context.borrow_mut().set(name, val);
+        self.context.borrow_mut().set(id, val);
 
         Ok(())
+    }
+
+    fn get_id(&self, node: Node) -> Result<String> {
+        let id = node.child_by_field_name("id").ok_or(MissingField("id"))?;
+        Ok(id
+            .utf8_text(self.source.as_bytes())
+            .map_err(Utf8Error)
+            .map(ToString::to_string)?)
     }
 
     fn get_primitive(&self, node: Node) -> Result<DataType> {
