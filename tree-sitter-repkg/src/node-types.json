@@ -74,6 +74,11 @@
     "fields": {}
   },
   {
+    "type": "identifier_without_ver",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "import_expr",
     "named": true,
     "fields": {},
@@ -219,24 +224,35 @@
   {
     "type": "variable_def",
     "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "array",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        },
-        {
-          "type": "string",
-          "named": true
-        }
-      ]
+    "fields": {
+      "id": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier_without_ver",
+            "named": true
+          }
+        ]
+      },
+      "val": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -256,15 +272,7 @@
     "named": false
   },
   {
-    "type": "\"",
-    "named": false
-  },
-  {
     "type": "%",
-    "named": false
-  },
-  {
-    "type": "'",
     "named": false
   },
   {
@@ -276,27 +284,11 @@
     "named": false
   },
   {
-    "type": ",",
-    "named": false
-  },
-  {
-    "type": ".",
-    "named": false
-  },
-  {
     "type": "=",
     "named": false
   },
   {
     "type": "@",
-    "named": false
-  },
-  {
-    "type": "[",
-    "named": false
-  },
-  {
-    "type": "]",
     "named": false
   },
   {

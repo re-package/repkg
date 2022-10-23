@@ -1,5 +1,7 @@
-import cargo.tasks.*
+// Dependencies
+dependencies = [
+    'gtk@4',
+    'iced.rs'
+]
 
-    dependencies =[
-        'gtk',
-    ]
+version = 3

@@ -8,16 +8,23 @@ use miette::{Diagnostic, IntoDiagnostic, Result};
 
 use repkg_common::repository::Repository;
 use repkg_script::{
-    exec::Executor, package::Packager, parser::project, parser_new::parser, task_order,
+    exec::{tree_sitter::TreeSitterExecutor, Executor},
+    package::Packager,
+    parser::project,
+    parser_new::parser,
+    task_order,
 };
 use thiserror::Error;
 
 fn main() -> Result<()> {
     // parser_new::parser::Parser::new(&fs::read_to_string(".repkg").into_diagnostic()?).parse()?;
 
-    let mut cli = Cli::parse();
+    let parser = TreeSitterExecutor::parse(".repkg")?;
+    parser.walk()?;
 
-    run(&mut cli)?;
+    // let mut cli = Cli::parse();
+
+    // run(&mut cli)?;
 
     Ok(())
 }
@@ -32,7 +39,7 @@ pub enum Error {
     ProjectDoesntExist(String),
 }
 
-fn run(cli: &mut Cli) -> Result<()> {
+fn _run(cli: &mut Cli) -> Result<()> {
     match cli.command.as_ref().unwrap_or(&Command::Run {
         command: "build".to_string(),
         dry_run: false,
@@ -86,7 +93,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 dry_run: *dry_run,
                 no_sandbox: *no_sandbox,
             });
-            run(cli)?;
+            _run(cli)?;
         }
         Command::Test {
             dry_run,
@@ -97,7 +104,7 @@ fn run(cli: &mut Cli) -> Result<()> {
                 dry_run: *dry_run,
                 no_sandbox: *no_sandbox,
             });
-            run(cli)?;
+            _run(cli)?;
         }
         Command::Package {
             dry_run,

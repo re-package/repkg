@@ -22,9 +22,9 @@ module.exports = grammar({
         ),
 
         variable_def: $ => seq(
-            $._identifier_without_ver,
+            field('id', $.identifier_without_ver),
             token('='),
-            $._primitive,
+            field('val', $._primitive),
         ),
 
         import_expr: $ => seq(
@@ -68,8 +68,6 @@ module.exports = grammar({
             $._identifier_without_ver,
         )),
 
-        _dot: $ => prec(50, token('.')),
-
         nested_identifier: $ => prec(5, seq(
             field('path', $._path),
             $._dot,
@@ -81,7 +79,8 @@ module.exports = grammar({
             field('var', choice($._identifier_without_ver, $.number, '%')),
         )),
 
-        _identifier_without_ver: $ => /[-a-z_A-Z]+/,
+        identifier_without_ver: $ => $._identifier_without_ver,
+        _identifier_without_ver: $ => token(/[-a-z_A-Z]+/),
 
         _identifier_with_ver: $ => prec.right(seq(
             $._identifier_without_ver,
@@ -101,30 +100,28 @@ module.exports = grammar({
 
         string: $ => choice(
             seq(
-                '"',
+                $._double_quotation_mark,
                 repeat(/[^"]/),
-                '"',
+                $._double_quotation_mark,
             ),
             seq(
-                '\'',
+                $._single_quotation_mark,
                 repeat(/[^']/),
-                '\''
+                $._single_quotation_mark,
             ),
         ),
 
         array: $ => seq(
-            '[',
+            $._left_square_bracket,
             optional(
                 seq(
-                    $._primitive,
                     repeat(seq(
-                        ',',
                         $._primitive,
+                        $._comma,
                     )),
-                    optional(','),
                 )
             ),
-            ']',
+            $._right_square_bracket,
         ),
 
         wildcard: $ => token('*'),
@@ -135,6 +132,12 @@ module.exports = grammar({
             '\n\r',
             '\0',
         ),
+        _left_square_bracket: $ => token('['),
+        _right_square_bracket: $ => token(']'),
+        _comma: $ => token(','),
+        _dot: $ => token('.'),
+        _single_quotation_mark: $ => token('\''),
+        _double_quotation_mark: $ => token('"'),
 
         comment: $ => token(choice(
             seq('//', /.*/),

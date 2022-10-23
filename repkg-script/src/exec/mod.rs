@@ -1,6 +1,8 @@
 pub mod executor;
 pub use executor::*;
 
+pub mod tree_sitter;
+
 use miette::Result;
 
 pub trait CommandT {
