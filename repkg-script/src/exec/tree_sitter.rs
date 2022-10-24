@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::BTreeMap, fs, path::Path, str::Utf8Error};
+use std::{collections::BTreeMap, fs, path::Path, str::Utf8Error};
 
 use miette::{bail, Diagnostic, Result};
 use thiserror::Error;
@@ -29,7 +29,6 @@ pub enum Error {
 pub struct TreeSitterExecutor {
     tree: Tree,
     source: String,
-    context: RefCell<Context>,
 }
 
 impl TreeSitterExecutor {
@@ -40,39 +39,44 @@ impl TreeSitterExecutor {
             .set_language(tree_sitter_repkg::language())
             .map_err(LanguageError)?;
         let tree = parser.parse(&source, None).unwrap(); // TODO: better error handling.
-        Ok(Self {
-            tree,
-            source,
-            context: RefCell::new(Context::new()),
-        })
+        Ok(Self { tree, source })
     }
 
-    pub fn walk(&self) -> Result<()> {
+    pub fn walk(&self) -> Result<Context> {
         let root_node = self.tree.root_node();
-        self.walk_node(root_node)?;
 
-        Ok(())
+        let mut context = Context::default();
+        self.walk_node_with_context(root_node, &mut context)?;
+
+        Ok(context)
     }
 
-    fn walk_node(&self, node: Node) -> Result<()> {
+    fn walk_node(&self, node: Node) -> Result<Context> {
+        let mut context = Context::default();
+        self.walk_node_with_context(node, &mut context)?;
+
+        Ok(context)
+    }
+
+    fn walk_node_with_context(&self, node: Node, context: &mut Context) -> Result<()> {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.handle_node(child)?;
+            self.handle_node(child, context)?;
         }
 
         Ok(())
     }
 
-    fn handle_node(&self, node: Node) -> Result<()> {
+    fn handle_node(&self, node: Node, context: &mut Context) -> Result<()> {
         match node.kind() {
             "import_expr" => {
-                self.handle_import_node(node)?;
+                self.handle_import_node(node, context)?;
             }
             "variable_def" => {
-                self.handle_variable_def(node)?;
+                self.handle_variable_def(node, context)?;
             }
             "namespace" => {
-                self.handle_namespace(node)?;
+                self.handle_namespace(node, context)?;
             }
             "command" => {
                 todo!()
@@ -83,28 +87,29 @@ impl TreeSitterExecutor {
         Ok(())
     }
 
-    fn handle_namespace(&self, node: Node) -> Result<()> {
+    fn handle_namespace(&self, node: Node, context: &mut Context) -> Result<()> {
         let id = self.get_id(node)?;
-        dbg!(&id);
 
-        println!("Namespace: {id}");
-
-        self.walk_node(node)?;
+        let inner = node
+            .child_by_field_name("body")
+            .ok_or(MissingField("body"))?;
+        let new_context = self.walk_node(inner)?;
+        context.set(id, DataType::Context(new_context));
 
         Ok(())
     }
 
-    fn handle_import_node(&self, _node: Node) -> Result<()> {
+    fn handle_import_node(&self, _node: Node, _context: &mut Context) -> Result<()> {
         println!("Import Expression!");
 
         todo!()
     }
 
-    fn handle_variable_def(&self, node: Node) -> Result<()> {
+    fn handle_variable_def(&self, node: Node, context: &mut Context) -> Result<()> {
         let id = self.get_id(node)?;
         let val =
             self.get_primitive(node.child_by_field_name("val").ok_or(MissingField("val"))?)?;
-        self.context.borrow_mut().set(id, val);
+        context.set(id, val);
 
         Ok(())
     }
@@ -168,9 +173,10 @@ pub enum DataType {
     Array(Vec<DataType>),
     String(String),
     Number(usize),
+    Context(Context),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Context {
     vars: BTreeMap<String, DataType>,
 }

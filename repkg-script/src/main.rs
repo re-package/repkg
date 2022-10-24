@@ -20,7 +20,8 @@ fn main() -> Result<()> {
     // parser_new::parser::Parser::new(&fs::read_to_string(".repkg").into_diagnostic()?).parse()?;
 
     let parser = TreeSitterExecutor::parse(".repkg")?;
-    parser.walk()?;
+    let context = parser.walk()?;
+    dbg!(&context);
 
     // let mut cli = Cli::parse();
 

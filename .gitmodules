@@ -1,4 +1,4 @@
 [submodule "tree-sitter-repkg"]
 	path = tree-sitter-repkg
 	url = git@github.com:re-package/tree-sitter-repkg
-	branch = tree-sitter
+	branch = master
