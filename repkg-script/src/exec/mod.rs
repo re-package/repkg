@@ -1,7 +1,7 @@
 pub mod executor;
 pub use executor::*;
 
-pub mod tree_sitter;
+pub mod tree_walker;
 
 use miette::Result;
 

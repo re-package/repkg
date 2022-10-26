@@ -29,12 +29,12 @@ pub enum Error {
     VarDoesntExist(String),
 }
 
-pub struct TreeSitterExecutor {
+pub struct TreeWalker {
     tree: Tree,
     source: String,
 }
 
-impl TreeSitterExecutor {
+impl TreeWalker {
     pub fn parse(path: impl AsRef<Path>) -> Result<Self> {
         let mut parser = Parser::new();
         let source = fs::read_to_string(path).map_err(IoError)?;

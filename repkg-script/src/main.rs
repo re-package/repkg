@@ -8,7 +8,7 @@ use miette::{Diagnostic, IntoDiagnostic, Result};
 
 use repkg_common::repository::Repository;
 use repkg_script::{
-    exec::{tree_sitter::TreeSitterExecutor, Executor},
+    exec::{tree_walker::TreeWalker, Executor},
     package::Packager,
     parser::project,
     parser_new::parser,
@@ -19,7 +19,7 @@ use thiserror::Error;
 fn main() -> Result<()> {
     // parser_new::parser::Parser::new(&fs::read_to_string(".repkg").into_diagnostic()?).parse()?;
 
-    let parser = TreeSitterExecutor::parse(".repkg")?;
+    let parser = TreeWalker::parse(".repkg")?;
     let context = parser.walk()?;
     dbg!(&context);
 
