@@ -1,3 +1,9 @@
 build {
     super. cargo build
+
+    test {
+        todo
+    }
 }
+
+build. test

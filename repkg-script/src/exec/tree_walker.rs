@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::Path, str::Utf8Error};
+use std::{collections::BTreeMap, fs, path::Path, rc::Rc, str::Utf8Error};
 
 use miette::{bail, miette, Diagnostic, Result};
 use thiserror::Error;
@@ -45,23 +45,23 @@ impl TreeWalker {
         Ok(Self { tree, source })
     }
 
-    pub fn walk(&self) -> Result<Context> {
+    pub fn walk(&self) -> Result<ParseOutput> {
         let root_node = self.tree.root_node();
 
-        let mut context = Context::default();
+        let mut context = ParseOutput::default();
         self.walk_node_with_context(root_node, &mut context)?;
 
         Ok(context)
     }
 
-    fn walk_node(&self, node: Node) -> Result<Context> {
-        let mut context = Context::default();
+    fn walk_node(&self, node: Node) -> Result<ParseOutput> {
+        let mut context = ParseOutput::default();
         self.walk_node_with_context(node, &mut context)?;
 
         Ok(context)
     }
 
-    fn walk_node_with_context(&self, node: Node, context: &mut Context) -> Result<()> {
+    fn walk_node_with_context(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             self.handle_node(child, context)?;
@@ -70,7 +70,7 @@ impl TreeWalker {
         Ok(())
     }
 
-    fn handle_node(&self, node: Node, context: &mut Context) -> Result<()> {
+    fn handle_node(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         match node.kind() {
             "import_expr" => {
                 self.handle_import_node(node, context)?;
@@ -95,25 +95,25 @@ impl TreeWalker {
         Ok(())
     }
 
-    fn handle_namespace(&self, node: Node, context: &mut Context) -> Result<()> {
+    fn handle_namespace(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         let id = self.get_id(node)?;
 
         let inner = node
             .child_by_field_name("body")
             .ok_or(MissingField("body"))?;
         let new_context = self.walk_node(inner)?;
-        context.set(id, DataType::Context(new_context));
+        context.set(id, DataType::Child(new_context));
 
         Ok(())
     }
 
-    fn handle_import_node(&self, _node: Node, _context: &mut Context) -> Result<()> {
+    fn handle_import_node(&self, _node: Node, _context: &mut ParseOutput) -> Result<()> {
         println!("Import Expression!");
 
         todo!()
     }
 
-    fn handle_variable_def(&self, node: Node, context: &mut Context) -> Result<()> {
+    fn handle_variable_def(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         let id = self.get_id(node)?;
         let val =
             self.get_primitive(node.child_by_field_name("val").ok_or(MissingField("val"))?)?;
@@ -122,14 +122,14 @@ impl TreeWalker {
         Ok(())
     }
 
-    fn handle_command(&self, node: Node, context: &mut Context) -> Result<()> {
+    fn handle_command(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         let cmd = self.get_command(node, context)?;
         context.to_execute.push(cmd);
 
         Ok(())
     }
 
-    fn get_command(&self, node: Node, context: &mut Context) -> Result<Command> {
+    fn get_command(&self, node: Node, context: &mut ParseOutput) -> Result<Command> {
         let program = node
             .child_by_field_name("program")
             .ok_or(MissingField("program"))?;
@@ -152,7 +152,7 @@ impl TreeWalker {
         Ok((program, args))
     }
 
-    fn handle_path(&self, node: Node, context: &mut Context) -> Result<Vec<String>> {
+    fn handle_path(&self, node: Node, context: &mut ParseOutput) -> Result<Vec<String>> {
         match node.kind() {
             "nested_identifier" => {
                 let mut first_part = self.handle_path(
@@ -191,7 +191,7 @@ impl TreeWalker {
             .map(ToString::to_string)?)
     }
 
-    fn get_var(&self, node: Node, context: &mut Context) -> Result<DataType> {
+    fn get_var(&self, node: Node, context: &mut ParseOutput) -> Result<DataType> {
         let var = node.child_by_field_name("var").ok_or(MissingField("var"))?;
 
         let var = match var.kind() {
@@ -266,7 +266,7 @@ pub enum DataType {
     Array(Vec<DataType>),
     String(String),
     Number(usize),
-    Context(Context),
+    Child(ParseOutput),
     // Dont calculate variable until runtime.
     Wait(String),
     // Calculate command at request time
@@ -276,12 +276,13 @@ pub enum DataType {
 type Command = (Vec<String>, Vec<DataType>);
 
 #[derive(Default, Debug, Clone)]
-pub struct Context {
-    vars: BTreeMap<String, DataType>,
-    to_execute: Vec<Command>,
+pub struct ParseOutput {
+    pub(super) vars: BTreeMap<String, DataType>,
+    pub(super) to_execute: Vec<Command>,
+    pub(super) parent: Option<Rc<ParseOutput>>,
 }
 
-impl Context {
+impl ParseOutput {
     pub fn new() -> Self {
         Self::default()
     }

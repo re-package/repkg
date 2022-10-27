@@ -6,9 +6,9 @@ use std::{
 use clap::{Parser, Subcommand};
 use miette::{Diagnostic, IntoDiagnostic, Result};
 
-use repkg_common::repository::Repository;
+use repkg_common::{registry::Registry, repository::Repository};
 use repkg_script::{
-    exec::{tree_walker::TreeWalker, Executor},
+    exec::{ctx_executor::ContextExecutor, tree_walker::TreeWalker, Executor},
     package::Packager,
     parser::project,
     parser_new::parser,
@@ -19,9 +19,10 @@ use thiserror::Error;
 fn main() -> Result<()> {
     // parser_new::parser::Parser::new(&fs::read_to_string(".repkg").into_diagnostic()?).parse()?;
 
-    let parser = TreeWalker::parse(".repkg")?;
-    let context = parser.walk()?;
-    dbg!(&context);
+    let walker = TreeWalker::parse(".repkg")?;
+    let context = walker.walk()?;
+
+    ContextExecutor::execute(&context, &Registry {})?;
 
     // let mut cli = Cli::parse();
 
