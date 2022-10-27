@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::Path, rc::Rc, str::Utf8Error};
+use std::{collections::BTreeMap, fs, path::Path, str::Utf8Error};
 
 use miette::{bail, miette, Diagnostic, Result};
 use thiserror::Error;
@@ -43,6 +43,18 @@ impl TreeWalker {
             .map_err(LanguageError)?;
         let tree = parser.parse(&source, None).unwrap(); // TODO: better error handling.
         Ok(Self { tree, source })
+    }
+
+    pub fn parse_text(source: &'static str) -> Result<Self> {
+        let mut parser = Parser::new();
+        parser
+            .set_language(tree_sitter_repkg::language())
+            .map_err(LanguageError)?;
+        let tree = parser.parse(&source, None).unwrap(); // TODO: better error handling.
+        Ok(Self {
+            tree,
+            source: source.to_string(),
+        })
     }
 
     pub fn walk(&self) -> Result<ParseOutput> {
@@ -101,7 +113,8 @@ impl TreeWalker {
         let inner = node
             .child_by_field_name("body")
             .ok_or(MissingField("body"))?;
-        let new_context = self.walk_node(inner)?;
+        let mut new_context = self.walk_node(inner)?;
+        new_context.parent = Some(context as *mut ParseOutput);
         context.set(id, DataType::Child(new_context));
 
         Ok(())
@@ -278,8 +291,9 @@ type Command = (Vec<String>, Vec<DataType>);
 #[derive(Default, Debug, Clone)]
 pub struct ParseOutput {
     pub(super) vars: BTreeMap<String, DataType>,
+
     pub(super) to_execute: Vec<Command>,
-    pub(super) parent: Option<Rc<ParseOutput>>,
+    pub(super) parent: Option<*mut ParseOutput>,
 }
 
 impl ParseOutput {
