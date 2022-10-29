@@ -151,7 +151,12 @@ impl TreeWalker {
         let mut args: Vec<DataType> = vec![];
         for arg in node.children_by_field_name("args", &mut node.walk()) {
             let data: DataType = match arg.kind() {
-                "text" => DataType::String(self.node_to_string(arg)?),
+                "primitive" => {
+                    let mut cursor = arg.walk();
+                    cursor.goto_first_child();
+                    let child = cursor.node();
+                    self.get_primitive(child)?
+                }
                 "variable" => self.get_var(arg, context)?,
                 "command" => DataType::WaitCalc(self.get_command(node, context)?),
                 a => {
@@ -211,7 +216,7 @@ impl TreeWalker {
             "number" => {
                 let num = self.get_primitive(node)?;
                 match num {
-                    DataType::Number(a) => DataType::Number(a),
+                    DataType::Number(a) => DataType::Wait(format!("arg{}", a)),
                     _ => {
                         bail!(miette!("Number must be a number!"))
                     }

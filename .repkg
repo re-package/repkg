@@ -1,1 +1,5 @@
-todo 'Hello world!'
+build {
+    todo %%1
+}
+
+build 'test'
