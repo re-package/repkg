@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::Path, str::Utf8Error};
+use std::{collections::BTreeMap, fmt::Debug, fs, path::Path, rc::Rc, str::Utf8Error};
 
 use miette::{bail, miette, Diagnostic, Result};
 use thiserror::Error;
@@ -220,6 +220,7 @@ impl TreeWalker {
             "percent_sign" => DataType::Wait("args".to_string()),
             "text" => {
                 let name = self.node_to_string(var)?;
+                println!("Var: {name}");
                 context.get(&name).ok_or(VarDoesntExist(name))?.clone()
             }
             a => bail!(UnknownNodeType(a)),
@@ -274,7 +275,7 @@ impl TreeWalker {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum DataType {
     Array(Vec<DataType>),
     String(String),
@@ -284,6 +285,21 @@ pub enum DataType {
     Wait(String),
     // Calculate command at request time
     WaitCalc(Command),
+    Custom(Rc<Box<dyn 'static + Fn(&ParseOutput, &Vec<DataType>) -> DataType>>),
+}
+
+impl Debug for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Array(arg0) => f.debug_tuple("Array").field(arg0).finish(),
+            Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
+            Self::Number(arg0) => f.debug_tuple("Number").field(arg0).finish(),
+            Self::Child(arg0) => f.debug_tuple("Child").field(arg0).finish(),
+            Self::Wait(arg0) => f.debug_tuple("Wait").field(arg0).finish(),
+            Self::WaitCalc(arg0) => f.debug_tuple("WaitCalc").field(arg0).finish(),
+            Self::Custom(_) => f.debug_tuple("Custom").finish(),
+        }
+    }
 }
 
 type Command = (Vec<String>, Vec<DataType>);
@@ -291,7 +307,6 @@ type Command = (Vec<String>, Vec<DataType>);
 #[derive(Default, Debug, Clone)]
 pub struct ParseOutput {
     pub(super) vars: BTreeMap<String, DataType>,
-
     pub(super) to_execute: Vec<Command>,
     pub(super) parent: Option<*mut ParseOutput>,
 }

@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     let walker = TreeWalker::parse(".repkg")?;
     let context = walker.walk()?;
 
-    ContextExecutor::execute(&context, &Registry {})?;
+    ContextExecutor::execute(&context, &Registry {}, &vec![])?;
 
     // let mut cli = Cli::parse();
 

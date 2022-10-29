@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use miette::{bail, miette, Diagnostic, Result};
 use repkg_common::registry::Registry;
 use thiserror::Error;
@@ -15,33 +17,47 @@ pub enum Error {
 pub struct ContextExecutor;
 
 impl ContextExecutor {
-    pub fn execute(parse_output: &ParseOutput, registry: &Registry) -> Result<()> {
+    pub fn execute(
+        parse_output: &ParseOutput,
+        registry: &Registry,
+        _args: &Vec<DataType>,
+    ) -> Result<()> {
         // TODO: proper implementation of standard library
         let mut standard_lib = TreeWalker::parse_text(
             "
-todo {
-    echo 'TODO!'
+repkg-version {
+    echo '1.0.0'
 }
-        ",
+            ",
         )?
         .walk()?;
 
-        standard_lib.set("echo", DataType::Child(ParseOutput::default()));
+        standard_lib.set(
+            "todo",
+            DataType::Custom(Rc::new(Box::new(|_ctx, args| {
+                println!("Todo! {:?}", args);
+                DataType::Number(0)
+            }))),
+        );
 
-        for (command_path, _args) in &parse_output.to_execute {
+        for (command_path, args) in &parse_output.to_execute {
             let command_path =
-                ContextExecutor::follow_path(command_path, parse_output, registry, &standard_lib)?;
+                ContextExecutor::follow_path(&command_path, parse_output, registry, &standard_lib)?;
+
             match command_path {
                 DataType::Child(parse_output) => {
-                    ContextExecutor::execute(parse_output, registry)?;
+                    ContextExecutor::execute(parse_output, registry, args)?;
+                }
+                DataType::Custom(custom_command) => {
+                    custom_command(parse_output, args);
                 }
                 a => {
-                    dbg!(a);
+                    bail!(miette!("Invalid command: {:?}", a))
                 }
             }
         }
 
-        todo!()
+        Ok(())
     }
 
     fn follow_path<'a>(
