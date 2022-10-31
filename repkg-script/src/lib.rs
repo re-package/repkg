@@ -1,3 +1,5 @@
+#![feature(anonymous_lifetime_in_impl_trait)]
+
 use miette::Diagnostic;
 use repkg_common::{Project, Task};
 use thiserror::Error;
@@ -6,6 +8,7 @@ pub mod exec;
 pub mod package;
 pub mod parser;
 pub mod parser_new;
+pub mod script_std;
 pub mod task_order;
 
 #[derive(Error, Diagnostic, Debug)]

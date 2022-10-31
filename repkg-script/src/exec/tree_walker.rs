@@ -1,4 +1,11 @@
-use std::{collections::BTreeMap, fmt::Debug, fs, path::Path, rc::Rc, str::Utf8Error};
+use std::{
+    collections::BTreeMap,
+    fmt::{Debug, Display},
+    fs,
+    path::Path,
+    rc::Rc,
+    str::Utf8Error,
+};
 
 use miette::{bail, miette, Diagnostic, Result};
 use thiserror::Error;
@@ -128,8 +135,10 @@ impl TreeWalker {
 
     fn handle_variable_def(&self, node: Node, context: &mut ParseOutput) -> Result<()> {
         let id = self.get_id(node)?;
-        let val =
-            self.get_primitive(node.child_by_field_name("val").ok_or(MissingField("val"))?)?;
+        let val = self.get_primitive(
+            node.child_by_field_name("val").ok_or(MissingField("val"))?,
+            context,
+        )?;
         context.set(id, val);
 
         Ok(())
@@ -151,14 +160,15 @@ impl TreeWalker {
         let mut args: Vec<DataType> = vec![];
         for arg in node.children_by_field_name("args", &mut node.walk()) {
             let data: DataType = match arg.kind() {
+                "text" => DataType::String(self.node_to_string(arg)?),
                 "primitive" => {
                     let mut cursor = arg.walk();
                     cursor.goto_first_child();
                     let child = cursor.node();
-                    self.get_primitive(child)?
+                    self.get_primitive(child, context)?
                 }
                 "variable" => self.get_var(arg, context)?,
-                "command" => DataType::WaitCalc(self.get_command(node, context)?),
+                "command" => DataType::WaitCalc(self.get_command(arg, context)?),
                 a => {
                     dbg!(&a);
                     bail!(UnknownNodeType(a))
@@ -214,7 +224,7 @@ impl TreeWalker {
 
         let var = match var.kind() {
             "number" => {
-                let num = self.get_primitive(node)?;
+                let num = self.get_primitive(var, context)?;
                 match num {
                     DataType::Number(a) => DataType::Wait(format!("arg{}", a)),
                     _ => {
@@ -228,19 +238,21 @@ impl TreeWalker {
                 println!("Var: {name}");
                 context.get(&name).ok_or(VarDoesntExist(name))?.clone()
             }
-            a => bail!(UnknownNodeType(a)),
+            a => {
+                bail!(UnknownNodeType(a))
+            }
         };
 
         Ok(var)
     }
 
-    fn get_primitive(&self, node: Node) -> Result<DataType> {
+    fn get_primitive(&self, node: Node, context: &mut ParseOutput) -> Result<DataType> {
         match node.kind() {
             "array" => {
                 let mut cursor = node.walk();
                 let mut val = Vec::new();
                 for child in node.children(&mut cursor) {
-                    val.push(self.get_primitive(child)?);
+                    val.push(self.get_primitive(child, context)?);
                 }
                 Ok(DataType::Array(val))
             }
@@ -273,7 +285,9 @@ impl TreeWalker {
 
                 Ok(DataType::Number(num))
             }
+            "variable" => Ok(self.get_var(node, context)?),
             a => {
+                dbg!("Here");
                 bail!(UnknownNodeType(a))
             }
         }
@@ -290,7 +304,37 @@ pub enum DataType {
     Wait(String),
     // Calculate command at request time
     WaitCalc(Command),
-    Custom(Rc<Box<dyn 'static + Fn(&ParseOutput, &Vec<DataType>) -> DataType>>),
+    Custom(Rc<Box<dyn 'static + Fn(&ParseOutput, &Vec<DataType>) -> Result<DataType>>>),
+}
+
+impl Display for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DataType::Array(array) => {
+                let mut string = format!("[{}", array[0]);
+                for i in &array[1..] {
+                    string.push_str(format!(", {}", i).as_str());
+                }
+
+                write!(f, "{}]", string)
+            }
+            DataType::String(s) => write!(f, "{s}"),
+            DataType::Number(n) => write!(f, "{n}"),
+            DataType::Child(obj) => {
+                write!(
+                    f,
+                    "{{\n{}}}",
+                    obj.vars
+                        .iter()
+                        .map(|(name, val)| { format!("{}: {}\n", name, val) })
+                        .collect::<String>()
+                )
+            }
+            DataType::Wait(_) => todo!(),
+            DataType::WaitCalc(_) => todo!(),
+            DataType::Custom(_) => todo!(),
+        }
+    }
 }
 
 impl Debug for DataType {

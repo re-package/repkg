@@ -1,5 +1,11 @@
 build {
-    todo %%1
+    version = 1
+
+    todo %%0
+
+    test {
+        version = 2
+    }
 }
 
-build 'test'
+echo %build
