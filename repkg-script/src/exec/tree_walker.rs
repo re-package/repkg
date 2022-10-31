@@ -235,7 +235,6 @@ impl TreeWalker {
             "percent_sign" => DataType::Wait("args".to_string()),
             "text" => {
                 let name = self.node_to_string(var)?;
-                println!("Var: {name}");
                 context.get(&name).ok_or(VarDoesntExist(name))?.clone()
             }
             a => {

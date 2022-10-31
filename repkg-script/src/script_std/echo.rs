@@ -12,6 +12,7 @@ pub enum Error {
 
 pub fn command(_ctx: &ParseOutput, args: &Vec<DataType>) -> Result<DataType> {
     if args.len() != 1 {
+        dbg!(args);
         bail!(InvalidNumOfArguments(args.len()))
     }
 

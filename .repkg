@@ -1,11 +1,9 @@
-build {
-    version = 1
-
-    todo %%0
-
-    test {
-        version = 2
-    }
+get-version {
+    echo %%0 .version
 }
 
-echo %build
+build {
+    version = 2
+}
+
+get-version %build

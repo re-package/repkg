@@ -5,9 +5,6 @@ use repkg_common::{Project, Task};
 use thiserror::Error;
 
 pub mod exec;
-pub mod package;
-pub mod parser;
-pub mod parser_new;
 pub mod script_std;
 pub mod task_order;
 
@@ -16,10 +13,6 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(code(std::io::Error))]
     IoError(#[from] std::io::Error),
-}
-
-fn io_error(e: std::io::Error) -> Error {
-    Error::IoError(e)
 }
 
 #[derive(Debug)]
