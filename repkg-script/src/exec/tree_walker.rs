@@ -169,6 +169,9 @@ impl TreeWalker {
                 }
                 "variable" => self.get_var(arg, context)?,
                 "command" => DataType::WaitCalc(self.get_command(arg, context)?),
+                "nested_identifier" | "identifier" => {
+                    DataType::WaitCalc((self.handle_path(arg, context)?, vec![]))
+                }
                 a => {
                     dbg!(&a);
                     bail!(UnknownNodeType(a))
@@ -198,6 +201,9 @@ impl TreeWalker {
                 Ok(first_part)
             }
             "identifier" => Ok(vec![self.node_to_string(node)?]),
+            "variable" => {
+                todo!()
+            }
             a => {
                 bail!(UnknownNodeType(a),)
             }

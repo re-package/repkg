@@ -97,9 +97,7 @@ impl ContextExecutor {
                 Ok(DataType::Number(0))
             }
             DataType::Custom(custom_command) => custom_command(ctx, &args),
-            a => {
-                bail!(miette!("Invalid command: {:?}", a))
-            }
+            a => Ok(a.clone()),
         }
     }
 

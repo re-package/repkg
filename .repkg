@@ -1,9 +1,10 @@
 get-version {
-    echo %%0 .version
+    echo %%0.version
 }
 
 build {
     version = 2
 }
 
+// Fails
 get-version %build
