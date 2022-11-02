@@ -1,9 +1,10 @@
 [package]
-name = "repkg-common"
+name = "repkg-core"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# Preferably this would be a dynamic library, but cargo does not have a decent way to do this, so for now
+# this library must be statically linked into every repkg binary that uses it.
 
 [dependencies]
 miette = { workspace = true }

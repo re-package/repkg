@@ -5,6 +5,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use miette::Diagnostic;
 use thiserror::Error;
 
+pub mod artifacts;
 pub mod fs_util;
 pub mod registry;
 pub mod repository;

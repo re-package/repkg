@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use miette::{bail, miette, Diagnostic, Result};
-use repkg_common::registry::Registry;
+use repkg_core::registry::Registry;
 use thiserror::Error;
 
 use crate::exec::tree_walker;

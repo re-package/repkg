@@ -1,6 +1,6 @@
 use miette::{Diagnostic, Result};
 
-use repkg_common::{Project, Task};
+use repkg_core::{Project, Task};
 use thiserror::Error;
 
 #[derive(Error, Diagnostic, Debug)]

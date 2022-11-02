@@ -455,7 +455,7 @@ name = "repkg"
 version = "0.1.0"
 
 [[package]]
-name = "repkg-common"
+name = "repkg-core"
 version = "0.1.0"
 dependencies = [
  "lenient_semver",
@@ -463,10 +463,6 @@ dependencies = [
  "semver",
  "thiserror",
 ]
-
-[[package]]
-name = "repkg-macros"
-version = "0.1.0"
 
 [[package]]
 name = "repkg-script"
@@ -479,8 +475,7 @@ dependencies = [
  "miette",
  "os_info",
  "pom",
- "repkg-common",
- "repkg-macros",
+ "repkg-core",
  "tar",
  "thiserror",
  "tree-sitter",
