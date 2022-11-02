@@ -1,5 +1,6 @@
 pub mod ctx_executor;
 
+pub mod tree_exec;
 pub mod tree_walker;
 
 use miette::Result;

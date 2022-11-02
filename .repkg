@@ -6,5 +6,4 @@ build {
     version = 2
 }
 
-// Fails
 get-version %build

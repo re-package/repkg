@@ -201,9 +201,6 @@ impl TreeWalker {
                 Ok(first_part)
             }
             "identifier" => Ok(vec![self.node_to_string(node)?]),
-            "variable" => {
-                todo!()
-            }
             a => {
                 bail!(UnknownNodeType(a),)
             }

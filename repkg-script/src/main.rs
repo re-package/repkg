@@ -1,13 +1,8 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use clap::Parser;
-use miette::{Diagnostic, Result};
-
-use repkg_common::registry::Registry;
-use repkg_script::{
-    exec::{ctx_executor::ContextExecutor, tree_walker::TreeWalker},
-    script_std,
-};
+use miette::{Diagnostic, IntoDiagnostic, Result};
+use repkg_script::exec::tree_exec;
 use thiserror::Error;
 
 fn main() -> Result<()> {
@@ -41,11 +36,23 @@ pub enum Error {
 }
 
 fn run(cli: &mut Cli) -> Result<()> {
-    let parse_output = TreeWalker::parse(&cli.file)?.walk()?;
+    let mut parser = tree_sitter::Parser::new();
+    let source = fs::read_to_string(&cli.file).into_diagnostic()?;
+    parser
+        .set_language(tree_sitter_repkg::language())
+        .into_diagnostic()?;
+    let tree = parser.parse(&source, None).unwrap();
 
-    let standard_lib = script_std::make();
-    let registry = Registry {};
-    ContextExecutor::execute(&parse_output, &registry, vec![], &standard_lib)
+    let executor = tree_exec::Executor::new(tree, source);
+    executor.execute_tree()?;
+
+    Ok(())
+
+    // let parse_output = TreeWalker::parse(&cli.file)?.walk()?;
+
+    // let standard_lib = script_std::make();
+    // let registry = Registry {};
+    // ContextExecutor::execute(&parse_output, &registry, vec![], &standard_lib)
 }
 
 #[derive(Parser)]

@@ -1,8 +1,9 @@
 use miette::{bail, Diagnostic, Result};
 use thiserror::Error;
 
-use crate::exec::tree_walker::{DataType, ParseOutput};
 use Error::*;
+
+use crate::exec::tree_exec::{Context, DataType};
 
 #[derive(Error, Diagnostic, Debug)]
 pub enum Error {
@@ -10,7 +11,7 @@ pub enum Error {
     InvalidNumOfArguments(usize),
 }
 
-pub fn command(_ctx: &ParseOutput, args: &Vec<DataType>) -> Result<DataType> {
+pub fn command<'a>(_ctx: &Context, args: &Vec<DataType>) -> Result<DataType<'a>> {
     if args.len() != 1 {
         dbg!(args);
         bail!(InvalidNumOfArguments(args.len()))
