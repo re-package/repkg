@@ -1,3 +1,0 @@
-build : cargo build --release
-test  : cargo nextest run --release
-clean : cargo clean
