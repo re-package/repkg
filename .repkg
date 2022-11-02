@@ -1,28 +1,9 @@
-project repkg in "repkg";
-
-project repkg-build in "repkg-build";
-
-project repkg-common in "repkg-common";
-
-project repkg-macros in "repkg-macros";
+get-version {
+    echo %%0.version
+}
 
 build {
-    #repkg build
-    #repkg-build build
+    version = 2
 }
 
-project package {
-    package {
-        !windows $output target/release/repkg-build.exe
-        !windows $output target/release/repkg.exe
-        !linux $output target/release/repkg-build
-        !linux $output target/release/repkg
-    }
-}
-
-package {
-    #self build
-    #package package
-}
-
-clean : cargo clean
+get-version %build

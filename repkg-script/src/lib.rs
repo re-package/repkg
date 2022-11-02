@@ -1,22 +1,31 @@
-use repkg_common::{Name, Project, Rule};
+#![feature(anonymous_lifetime_in_impl_trait)]
+
+use miette::Diagnostic;
+use repkg_common::{Project, Task};
+use thiserror::Error;
 
 pub mod exec;
-pub mod package;
-pub mod parser;
-pub mod sandbox;
+pub mod script_std;
 pub mod task_order;
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(code(std::io::Error))]
+    IoError(#[from] std::io::Error),
+}
 
 #[derive(Debug)]
 pub struct Import {
     pub url: String,
-    pub items: Vec<Name>,
+    pub items: Vec<String>,
 }
 
 #[derive(Debug)]
 pub enum ASTNode {
     Project(Project),
     Import(Import),
-    Rule(Rule),
+    Rule(Task),
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,12 +36,12 @@ pub enum Value {
 
 #[derive(Debug)]
 pub struct Function {
-    pub name: Name,
+    pub name: String,
     pub body: Vec<Value>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCall {
-    pub func_name: Name,
+    pub func_name: String,
     pub arguments: Vec<Value>,
 }
