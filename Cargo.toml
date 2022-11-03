@@ -1,5 +1,5 @@
 [workspace]
-members = ["repkg", "repkg-build", "repkg-core"]
+members = ["repkg", "repkg-build", "repkg-core", "repkg-registry-host"]
 
 [workspace.dependencies]
 color-eyre = "0.6.2"
