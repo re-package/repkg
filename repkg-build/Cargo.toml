@@ -16,3 +16,6 @@ lenient_semver = { workspace = true }
 semver = { workspace = true }
 glob = "0.3.0"
 copy_dir = "0.1.2"
+
+[features]
+recar = []

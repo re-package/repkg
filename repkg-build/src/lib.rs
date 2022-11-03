@@ -33,6 +33,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum CliCommand {
+    #[cfg(feature = "recar")]
     Recar {
         #[clap(subcommand)]
         subcommand: CliRecarCommand,
@@ -41,6 +42,7 @@ pub enum CliCommand {
 }
 
 #[derive(Subcommand)]
+#[cfg(feature = "recar")]
 pub enum CliRecarCommand {
     Hash {
         #[clap(short, long, default_value = "x")]
@@ -53,8 +55,9 @@ pub enum CliRecarCommand {
 
 pub fn run(cli: Cli) -> Result<()> {
     if cli.subcommand.is_some() {
-        let subcommand = cli.subcommand.unwrap();
-        match subcommand {
+        #[cfg(feature = "recar")]
+        match cli.subcommand.unwrap() {
+            #[cfg(feature = "recar")]
             CliCommand::Recar { subcommand, file } => {
                 if !file.exists() || file.is_dir() {
                     bail!(miette!("Path must be a file"))
@@ -83,10 +86,9 @@ pub fn run(cli: Cli) -> Result<()> {
                         }
                     }
                 }
-
-                Ok(())
             }
         }
+        Ok(())
     } else {
         if !cli.path.is_dir() {
             bail!(PathMustBeDir)
