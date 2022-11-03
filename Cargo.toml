@@ -1,5 +1,5 @@
 [workspace]
-members = ["repkg", "repkg-script", "repkg-core", "tree-sitter-repkg"]
+members = ["repkg", "repkg-script", "repkg-core"]
 
 [workspace.dependencies]
 color-eyre = "0.6.2"
