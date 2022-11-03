@@ -17,7 +17,8 @@ semver = { workspace = true }
 glob = "0.3.0"
 copy_dir = "0.1.2"
 dialoguer = { version = "0.10.2", optional = true }
+pretty-bytes = { version = "0.2.2", optional = true }
 
 [features]
-recar = ["fancy", "dep:dialoguer"]
+recar = ["fancy", "dep:dialoguer", "dep:pretty-bytes"]
 fancy = ["miette/fancy"]
