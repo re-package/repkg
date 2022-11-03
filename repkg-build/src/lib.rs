@@ -1,9 +1,10 @@
 pub mod schema;
 
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, process::Command};
 
 use clap::Parser;
-use miette::{bail, Diagnostic, Result};
+use miette::{bail, miette, Diagnostic, Result};
+use repkg_core::artifacts::generate;
 use thiserror::Error;
 
 use Error::*;
@@ -37,7 +38,45 @@ pub fn run(cli: Cli) -> Result<()> {
     let file_contents = fs::read_to_string(package_file).map_err(|_| PackageFileDoesntExist)?;
     let package: schema::Package = toml::from_str(&file_contents).map_err(InvalidPackageFile)?;
 
-    dbg!(package);
+    for _dep in package.build.dependencies {
+        // TODO: Get dependency
+    }
+
+    let mut command = Command::new(
+        package
+            .build
+            .command
+            .get(0)
+            .ok_or_else(|| miette!("build.command must have at least one argument"))?,
+    );
+    command.args(&package.build.command[1..]);
+    let status = command
+        .status()
+        .map_err(|_| miette!("Failed to spawn command"))?;
+
+    if !status.success() {
+        bail!(miette!("Build command failed!"))
+    }
+
+    let tmp_dir = cli.path.join("repkg-tmp");
+    if tmp_dir.exists() {
+        fs::remove_dir_all(&tmp_dir).map_err(|_| miette!("Failed to remove tmp directory"))?;
+    }
+    fs::create_dir(&tmp_dir)
+        .map_err(|_| miette!("Failed to create tmp directory at '{}'", tmp_dir.display()))?;
+    for file in package.build.files {
+        if file.to_str().unwrap().contains("..") {
+            bail!(miette!("Paths may not contain '..'"))
+        }
+        let path = cli.path.join(&file);
+        if !path.exists() {
+            bail!(miette!("Specified file does not exist: {}", path.display()))
+        }
+        fs::copy(&path, tmp_dir.join(&file))
+            .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e))?;
+    }
+
+    generate::make_artifact(&tmp_dir)?;
 
     Ok(())
 }
