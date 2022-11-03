@@ -72,13 +72,19 @@ pub fn run(cli: Cli) -> Result<()> {
         if !path.exists() {
             bail!(miette!("Specified file does not exist: {}", path.display()))
         }
+        let parent = file.parent();
+        if let Some(parent) = parent {
+            let parent = tmp_dir.join(parent); // TODO: better error
+            fs::create_dir_all(&parent)
+                .map_err(|e| miette!("Failed to create directory {}: {}", parent.display(), e))?;
+        }
         fs::copy(&path, tmp_dir.join(&file))
-            .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e))?;
+            .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e,))?;
     }
 
     let hash = generate::make_artifact(&tmp_dir, "repkg-tmp.recar")?;
     let file_name = format!("{:x}.recar", hash);
-    fs::copy("repkg-tmp.recar", &file_name)
+    fs::rename("repkg-tmp.recar", &file_name)
         .map_err(|e| miette!("Failed to rename repkg-tmp.recar to {}: {}", &file_name, e))?;
 
     Ok(())

@@ -3,6 +3,6 @@ version = "0.1.0"
 
 [build]
 command = ["cargo", "build", "--release"]
-files = ["../target/release/repkg-build.exe"]
+files = ["src/main.rs"]
 
 [build.dependencies]
