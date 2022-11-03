@@ -76,7 +76,10 @@ pub fn run(cli: Cli) -> Result<()> {
             .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e))?;
     }
 
-    generate::make_artifact(&tmp_dir)?;
+    let hash = generate::make_artifact(&tmp_dir, "repkg-tmp.recar")?;
+    let file_name = format!("{:x}.recar", hash);
+    fs::copy("repkg-tmp.recar", &file_name)
+        .map_err(|e| miette!("Failed to rename repkg-tmp.recar to {}: {}", &file_name, e))?;
 
     Ok(())
 }
