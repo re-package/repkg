@@ -16,7 +16,8 @@ lenient_semver = { workspace = true }
 semver = { workspace = true }
 glob = "0.3.0"
 copy_dir = "0.1.2"
+dialoguer = { version = "0.10.2", optional = true }
 
 [features]
-recar = ["fancy"]
+recar = ["fancy", "dep:dialoguer"]
 fancy = ["miette/fancy"]

@@ -9,6 +9,9 @@ use thiserror::Error;
 
 use Error::*;
 
+#[cfg(feature = "recar")]
+pub mod recar;
+
 #[derive(Error, Diagnostic, Debug)]
 pub enum Error {
     #[error("Path must be a directory")]
@@ -36,21 +39,9 @@ pub enum CliCommand {
     #[cfg(feature = "recar")]
     Recar {
         #[clap(subcommand)]
-        subcommand: CliRecarCommand,
+        subcommand: recar::CliRecarCommand,
         file: PathBuf,
     },
-}
-
-#[derive(Subcommand)]
-#[cfg(feature = "recar")]
-pub enum CliRecarCommand {
-    Hash {
-        #[clap(short, long, default_value = "x")]
-        format: char,
-    },
-    /// Check that the hash in the file's name matches it's true hash
-    /// If not, fail with an error message
-    Check,
 }
 
 pub fn run(cli: Cli) -> Result<()> {
@@ -59,33 +50,7 @@ pub fn run(cli: Cli) -> Result<()> {
         match cli.subcommand.unwrap() {
             #[cfg(feature = "recar")]
             CliCommand::Recar { subcommand, file } => {
-                if !file.exists() || file.is_dir() {
-                    bail!(miette!("Path must be a file"))
-                }
-
-                match subcommand {
-                    CliRecarCommand::Hash { format } => {
-                        let hash = generate::hash(file)?;
-                        match format {
-                            'x' => println!("{:x}", hash),
-                            'X' => println!("{:X}", hash),
-                            _ => println!("{}", hash),
-                        }
-                    }
-                    CliRecarCommand::Check => {
-                        let file_name = PathBuf::from(file.file_name().unwrap()).with_extension("");
-                        let hash = file_name.to_str().unwrap();
-                        let true_hash = format!("{:x}", generate::hash(&file)?);
-                        let true_hash = true_hash.as_str();
-                        if hash != true_hash {
-                            bail!(miette!(
-                                "Hashes don't match!\nclaimed hash: {}\ntrue hash: {}",
-                                hash,
-                                true_hash,
-                            ))
-                        }
-                    }
-                }
+                recar::run(subcommand, file)?;
             }
         }
         Ok(())
