@@ -402,20 +402,7 @@ name = "repkg"
 version = "0.1.0"
 
 [[package]]
-name = "repkg-core"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "lenient_semver",
- "miette",
- "seahash",
- "semver",
- "tar",
- "thiserror",
-]
-
-[[package]]
-name = "repkg-script"
+name = "repkg-build"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -428,6 +415,19 @@ dependencies = [
  "serde",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "repkg-core"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "lenient_semver",
+ "miette",
+ "seahash",
+ "semver",
+ "tar",
+ "thiserror",
 ]
 
 [[package]]

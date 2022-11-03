@@ -1,0 +1,9 @@
+name = "repkg"
+version = "0.1.0"
+
+[build]
+command = ["cargo", "build", "--release"]
+files = ["target/release/repkg-script.exe", "target/release/repkg.exe"]
+
+[build.dependencies]
+cargo = "1.0.0"
