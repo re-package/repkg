@@ -65,21 +65,36 @@ pub fn run(cli: Cli) -> Result<()> {
     fs::create_dir(&tmp_dir)
         .map_err(|_| miette!("Failed to create tmp directory at '{}'", tmp_dir.display()))?;
     for file in package.build.files {
-        if file.to_str().unwrap().contains("..") {
-            bail!(miette!("Paths may not contain '..'"))
+        for file in glob::glob(
+            file.to_str()
+                .ok_or_else(|| miette!("Failed to convert path to string"))?,
+        )
+        .map_err(|e| miette!("Failed to parse glob path: {}", e))?
+        {
+            let file = file.map_err(|e| miette!("Glob error: {}", e))?;
+            if file.to_str().unwrap().contains("..") {
+                bail!(miette!("Paths may not contain '..'"))
+            }
+            let path = cli.path.join(&file);
+            if !path.exists() {
+                bail!(miette!("Specified file does not exist: {}", path.display()))
+            }
+            let parent = file.parent();
+            if let Some(parent) = parent {
+                let parent = tmp_dir.join(parent); // TODO: better error
+                fs::create_dir_all(&parent).map_err(|e| {
+                    miette!("Failed to create directory {}: {}", parent.display(), e)
+                })?;
+            }
+
+            if file.is_file() {
+                fs::copy(&path, tmp_dir.join(&file))
+                    .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e,))?;
+            } else if file.is_dir() {
+                copy_dir::copy_dir(&path, tmp_dir.join(&file))
+                    .map_err(|e| miette!("Failed to copy dir '{}': {}", file.display(), e))?;
+            }
         }
-        let path = cli.path.join(&file);
-        if !path.exists() {
-            bail!(miette!("Specified file does not exist: {}", path.display()))
-        }
-        let parent = file.parent();
-        if let Some(parent) = parent {
-            let parent = tmp_dir.join(parent); // TODO: better error
-            fs::create_dir_all(&parent)
-                .map_err(|e| miette!("Failed to create directory {}: {}", parent.display(), e))?;
-        }
-        fs::copy(&path, tmp_dir.join(&file))
-            .map_err(|e| miette!("Failed to copy file '{}': {}", file.display(), e,))?;
     }
 
     let hash = generate::make_artifact(&tmp_dir, "repkg-tmp.recar")?;

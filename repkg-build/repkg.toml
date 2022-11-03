@@ -3,6 +3,6 @@ version = "0.1.0"
 
 [build]
 command = ["cargo", "build", "--release"]
-files = ["src/main.rs"]
+files = ["src/"]
 
 [build.dependencies]
