@@ -7,14 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.9", features = ["derive"] }
-pom = "3.2.0"
 repkg-core = { path = "../repkg-core" }
-tar = "0.4.38"
-flate2 = "1.0.24"
-copy_dir = "0.1.2"
-os_info = { git = "https://github.com/martintc/os_info.git", branch = "feature-os-family", default-features = false }
-miette = { workspace = true }
-thiserror = { workspace = true }
-logos = "0.12.1"
-tree-sitter-repkg = { version = "0.0.1", path = "../tree-sitter-repkg" }
-tree-sitter = "0.20.9"
