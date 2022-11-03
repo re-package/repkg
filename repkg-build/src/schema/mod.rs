@@ -24,6 +24,7 @@ pub struct BuildInfo {
 pub type Dependencies = BTreeMap<String, Dependency>;
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(untagged)]
 pub enum Dependency {
     Short(Version),
     Full { version: Version },
