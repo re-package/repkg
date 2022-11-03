@@ -1,4 +1,5 @@
 #![feature(pattern)]
+#![feature(buf_read_has_data_left)]
 
 use std::{collections::BTreeMap, path::PathBuf};
 
