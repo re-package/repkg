@@ -178,8 +178,7 @@ fn run_copy_target<const PREFIX: &'static str>(
             glob::glob(cp.path.to_str().unwrap()).map_err(|e| miette!("Glob error: {}", e))?
         {
             let path = path.map_err(|e| miette!("Glob error: {}", e))?;
-            dbg!(&path);
-            let output = output.join(path.file_name().unwrap());
+            let output = output.join(&path);
             if path.is_file() {
                 fs::copy(&path, &output).map_err(IoError)?;
             }
