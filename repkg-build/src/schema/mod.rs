@@ -9,6 +9,15 @@ pub struct Package {
     pub version: Version,
     pub build: BuildInfo,
     pub app: Option<AppInfo>,
+    pub bin: Option<Vec<CopyTarget<"bin/">>>,
+    pub include: Option<Vec<CopyTarget<"include/">>>,
+    pub lib: Option<Vec<CopyTarget<"lib/">>>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CopyTarget<const PREFIX: &'static str> {
+    pub path: PathBuf,
+    pub to: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -17,7 +26,6 @@ pub struct AppInfo {}
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BuildInfo {
     pub command: Vec<String>,
-    pub files: Vec<PathBuf>,
     pub dependencies: Dependencies,
 }
 
