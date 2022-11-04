@@ -1,7 +1,0 @@
-build : cargo build --release
-test  : cargo test --release
-
-package {
-    !windows $output "../target/release/repkg.exe"
-    !linux $output "../target/release/repkg"
-}

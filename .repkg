@@ -1,9 +1,0 @@
-get-version {
-    echo %%0.version
-}
-
-build {
-    version = 2
-}
-
-get-version %build
