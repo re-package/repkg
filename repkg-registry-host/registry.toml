@@ -1,0 +1,8 @@
+[db]
+connection = "file://registry.db"
+db = "repkg"
+ns = "repkg"
+
+[server]
+bind = [127,0,0,1]
+port = 80

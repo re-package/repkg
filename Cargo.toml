@@ -2,7 +2,6 @@
 members = ["repkg", "repkg-build", "repkg-core", "repkg-registry-host"]
 
 [workspace.dependencies]
-color-eyre = "0.6.2"
 lenient_semver = "0.4.2"
 semver = { version = "1.0.14", features = ["serde"] }
 miette = { version = "5.3.0" }
