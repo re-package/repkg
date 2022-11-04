@@ -120,14 +120,6 @@ COMMIT TRANSACTION;
                 .execute(&ast, &sess, None, true)
                 .await
                 .map_err(db::Error::DBError)?;
-            drop(db);
-            let (db, sess) = db::start_for_sc(
-                &config.db.connection,
-                &config.db.ns,
-                &config.db.db,
-                "allusers",
-            )
-            .await?;
 
             info!("Response from database: {:#?}", response);
         }
