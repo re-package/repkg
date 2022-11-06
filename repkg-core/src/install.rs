@@ -32,6 +32,9 @@ pub enum Error {
     #[error("Failed to create dir: {}", .1.display())]
     #[diagnostic(code(repkg::install::failed_to_create_dir))]
     FailedToCreateDir(#[source] std::io::Error, PathBuf),
+    #[error("Failed to delete dir: {}", .1.display())]
+    #[diagnostic(code(repkg::install::failed_to_delete_dir))]
+    FailedToDeleteDir(#[source] std::io::Error, PathBuf),
     #[error("Failed to read dir: {}", .1.display())]
     #[diagnostic(code(repkg::install::failed_to_read_dir))]
     FailedToReadDir(#[source] std::io::Error, PathBuf),
@@ -41,6 +44,10 @@ pub enum Error {
     #[error("Failed to create symlink from {} to {}", .1.display(), .2.display())]
     #[diagnostic(code(repkg::install::failed_to_copy_file))]
     FailedToCreateSymlink(#[source] std::io::Error, PathBuf, PathBuf),
+}
+
+pub struct InstallFlags {
+    pub force: bool,
 }
 
 pub struct Installer {
@@ -54,16 +61,19 @@ impl Installer {
         Self { target }
     }
 
-    pub fn install(&self, artifact: impl AsRef<Path>) -> Result<()> {
+    pub fn install(&self, artifact: impl AsRef<Path>, flags: &InstallFlags) -> Result<()> {
         let path = artifact.as_ref();
         if path.is_file() {
-            self.extract(path)?;
+            let dst = self.extract(path, &flags)?;
+            self.link(&dst, "bin")?;
+            self.link(&dst, "lib")?;
+            self.link(&dst, "include")?;
         }
 
-        todo!()
+        Ok(())
     }
 
-    pub fn extract(&self, path: impl AsRef<Path>) -> Result<PathBuf> {
+    pub fn extract(&self, path: impl AsRef<Path>, flags: &InstallFlags) -> Result<PathBuf> {
         let path = path.as_ref();
         let cache = self.target.join("cache");
         if !path.exists() || !path.is_file() {
@@ -73,8 +83,12 @@ impl Installer {
         let hash = format!("{:x}", hash(path)?);
         let dst = cache.join(&hash);
         if dst.exists() {
-            let hash_len = hash.len();
-            bail!(AlreadyInstalled(hash, (0, hash_len).into()))
+            if !flags.force {
+                let hash_len = hash.len();
+                bail!(AlreadyInstalled(hash, (0, hash_len).into()))
+            } else {
+                fs::remove_dir_all(&dst).map_err(|e| FailedToDeleteDir(e, dst.clone()))?;
+            }
         }
         fs::create_dir_all(&dst).map_err(|e| FailedToCreateDir(e, dst.clone()))?;
         let file = File::open(path).map_err(|e| FailedToOpenFile(e, path.to_path_buf()))?;
@@ -83,40 +97,49 @@ impl Installer {
             .unpack(&dst)
             .map_err(|e| FailedToUnpack(e, path.to_path_buf()))?;
 
-        let bin = self.target.join("bin");
-        if !bin.exists() {
-            fs::create_dir_all(&bin).map_err(|e| FailedToCreateDir(e, bin.clone()))?;
-        }
-        let artifact_bin = dst.join("bin");
-        for entry in artifact_bin
-            .read_dir()
-            .map_err(|e| FailedToReadDir(e, artifact_bin))?
-        {
-            match entry {
-                Ok(entry) => {
-                    let file_name = entry.file_name();
-                    let new_path = bin.join(file_name);
-                    #[cfg(windows)]
-                    let metadata = entry
-                        .metadata()
-                        .map_err(|e| FailedToObtainFileMetadata(e, entry.path()))?;
-                    #[cfg(windows)]
-                    if metadata.is_file() {
-                        windows::fs::symlink_file(entry.path(), &new_path)
-                    } else if metadata.is_dir() {
-                        windows::fs::symlink_dir(entry.path(), &new_path)
-                    } else {
-                        panic!()
-                    }
-                    .map_err(|e| FailedToCreateSymlink(e, entry.path(), new_path))?;
-                    #[cfg(unix)]
-                    unix::fs::symlink(entry.path(), &new_path)
-                        .map_err(|e| FailedToCreateSymlink(e, entry.path(), new_path))?;
-                }
-                Err(_) => {}
-            }
-        }
-
-        todo!()
+        Ok(dst)
     }
+
+    fn link(&self, artifact: impl AsRef<Path>, dir_name: impl AsRef<Path>) -> Result<()> {
+        let artifact = artifact.as_ref();
+        let dst = artifact.join(&dir_name);
+        if dst.exists() {
+            let dir = self.target.join(&dir_name);
+            if !dir.exists() {
+                fs::create_dir_all(&dir).map_err(|e| FailedToCreateDir(e, dir.clone()))?;
+            }
+            symlink_all_to(dst, dir)?;
+        }
+        Ok(())
+    }
+}
+
+fn symlink_all_to(from: PathBuf, to: PathBuf) -> Result<()> {
+    for entry in from.read_dir().map_err(|e| FailedToReadDir(e, from))? {
+        match entry {
+            Ok(entry) => {
+                let file_name = entry.file_name();
+                let new_path = to.join(file_name);
+                #[cfg(windows)]
+                let metadata = entry
+                    .metadata()
+                    .map_err(|e| FailedToObtainFileMetadata(e, entry.path()))?;
+                #[cfg(windows)]
+                if metadata.is_file() {
+                    windows::fs::symlink_file(entry.path(), &new_path)
+                } else if metadata.is_dir() {
+                    windows::fs::symlink_dir(entry.path(), &new_path)
+                } else {
+                    panic!()
+                }
+                .map_err(|e| FailedToCreateSymlink(e, entry.path(), new_path))?;
+                #[cfg(unix)]
+                unix::fs::symlink(entry.path(), &new_path)
+                    .map_err(|e| FailedToCreateSymlink(e, entry.path(), new_path))?;
+            }
+            Err(_) => {}
+        }
+    }
+
+    Ok(())
 }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use miette::Result;
-use repkg_core::install::Installer;
+use repkg_core::install::{InstallFlags, Installer};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -13,14 +13,16 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     Install {
-        #[clap(short, long)]
+        #[clap(long)]
         file: PathBuf,
+        #[clap(short, long)]
+        force: bool,
     },
 }
 
 pub fn run(cli: Cli) -> Result<()> {
     match cli.subcommand {
-        Command::Install { file } => {
+        Command::Install { file, force } => {
             #[cfg(unix)]
             let dir = "/repkg";
             #[cfg(windows)]
@@ -29,7 +31,8 @@ pub fn run(cli: Cli) -> Result<()> {
             bail!(miette!("Unsupported platform!"));
 
             let installer = Installer::new(&dir);
-            installer.install(file)?;
+            let flags = InstallFlags { force };
+            installer.install(file, &flags)?;
         }
     }
 
