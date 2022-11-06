@@ -1,5 +1,5 @@
 [workspace]
-members = ["repkg", "repkg-build", "repkg-core", "repkg-registry-host"]
+members = ["repkg", "repkg-build", "repkg-core", "repkg-registry-host", "tree-sitter-repkg"]
 
 [workspace.dependencies]
 lenient_semver = "0.4.2"

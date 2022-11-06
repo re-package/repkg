@@ -1,3 +1,4 @@
 target/
 repkg-repo/
+**/node_modules/
 *.repkg
