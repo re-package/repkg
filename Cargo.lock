@@ -651,9 +651,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.0.18"
+version = "4.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "335867764ed2de42325fafe6d18b8af74ba97ee0c590fa016f157535b42ab04b"
+checksum = "8e67816e006b17427c9b4386915109b494fec2d929c63e3bd3561234cbf1bf1e"
 dependencies = [
  "atty",
  "bitflags",
@@ -1007,6 +1007,26 @@ dependencies = [
  "block-buffer 0.10.3",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "directories"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f51c5d4ddabd36886dd3e1438cb358cdcb0d7c499cb99cb4ac2e38e18b5cb210"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2404,6 +2424,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
+dependencies = [
+ "getrandom 0.2.8",
+ "redox_syscall",
+ "thiserror",
+]
+
+[[package]]
 name = "regex"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2438,12 +2469,19 @@ dependencies = [
 [[package]]
 name = "repkg"
 version = "0.1.0"
+dependencies = [
+ "clap 4.0.19",
+ "directories",
+ "miette",
+ "repkg-core",
+ "thiserror",
+]
 
 [[package]]
 name = "repkg-build"
 version = "0.1.0"
 dependencies = [
- "clap 4.0.18",
+ "clap 4.0.19",
  "copy_dir",
  "dialoguer",
  "glob",
@@ -2461,6 +2499,8 @@ dependencies = [
 name = "repkg-core"
 version = "0.1.0"
 dependencies = [
+ "copy_dir",
+ "directories",
  "flate2",
  "lenient_semver",
  "miette",
@@ -2475,7 +2515,7 @@ name = "repkg-registry-host"
 version = "0.1.0"
 dependencies = [
  "axum",
- "clap 4.0.18",
+ "clap 4.0.19",
  "miette",
  "serde",
  "surrealdb",

@@ -3,11 +3,13 @@
 
 use std::{collections::BTreeMap, path::PathBuf};
 
-use miette::Diagnostic;
+use directories::ProjectDirs;
+use miette::{miette, Diagnostic, Result};
 use thiserror::Error;
 
 pub mod artifacts;
 pub mod fs_util;
+pub mod install;
 pub mod registry;
 pub mod repository;
 
@@ -43,4 +45,8 @@ pub struct Command {
     /// separated by '.' ie. `rust.rustup` is vec!["rust", "rustup"]
     pub programs: Vec<String>,
     pub args: Vec<String>,
+}
+
+pub fn project_dirs() -> Result<ProjectDirs> {
+    ProjectDirs::from("", "", "repkg").ok_or_else(|| miette!("Failed to retrieve home dir"))
 }

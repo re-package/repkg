@@ -14,3 +14,5 @@ semver = { workspace = true }
 tar = "0.4.38"
 flate2 = "1.0.24"
 seahash = { version = "4.1.0", features = ["use_std"] }
+directories = "4.0.1"
+copy_dir = "0.1.2"
