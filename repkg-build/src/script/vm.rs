@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use super::{
     ast::{Error::*, Sourced},
-    Command, Value, ValueType,
+    Command, Import, Value, ValueType,
 };
 use Error::*;
 
@@ -23,12 +23,6 @@ pub enum Error {
 
 pub struct VM {
     ffi: BTreeMap<String, Value>,
-}
-
-#[derive(Debug)]
-pub struct Import {
-    name: String,
-    _url: String,
 }
 
 pub type Object = BTreeMap<String, Value>;

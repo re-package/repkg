@@ -1,7 +1,5 @@
 use std::{collections::BTreeMap, ops::Range, rc::Rc};
 
-use serde::{Deserialize, Serialize};
-
 pub mod ast;
 pub mod vm;
 
@@ -47,7 +45,13 @@ pub enum ValueType {
     Unit,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Clone)]
+pub struct Import {
+    name: String,
+    _url: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct Command {
     pub(crate) path: Vec<String>,
     pub(crate) args: Vec<String>,
