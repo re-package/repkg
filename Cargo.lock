@@ -2493,6 +2493,8 @@ dependencies = [
  "serde",
  "thiserror",
  "toml",
+ "tree-sitter",
+ "tree-sitter-repkg",
 ]
 
 [[package]]

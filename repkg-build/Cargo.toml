@@ -18,6 +18,8 @@ glob = "0.3.0"
 copy_dir = "0.1.2"
 dialoguer = { version = "0.10.2", optional = true }
 pretty-bytes = { version = "0.2.2", optional = true }
+tree-sitter = "0.20.9"
+tree-sitter-repkg = { version = "0.0.1", path = "../tree-sitter-repkg" }
 
 [features]
 recar = ["fancy", "dep:dialoguer", "dep:pretty-bytes"]

@@ -70,16 +70,35 @@
   {
     "type": "func_def",
     "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "command",
-          "named": true
-        }
-      ]
+    "fields": {
+      "commands": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "command",
+            "named": true
+          }
+        ]
+      },
+      "return": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "object",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -115,16 +134,17 @@
   {
     "type": "object",
     "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "definition",
-          "named": true
-        }
-      ]
+    "fields": {
+      "child": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "definition",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {

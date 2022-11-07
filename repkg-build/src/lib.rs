@@ -1,6 +1,7 @@
 #![feature(adt_const_params)]
 #![allow(incomplete_features)]
 pub mod schema;
+pub mod script;
 
 use std::{
     fs, io,

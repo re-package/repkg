@@ -11,11 +11,11 @@ module.exports = grammar({
     rules: {
         source_file: $ => $.object,
 
-        object: $ => seq(
+        object: $ => prec(1, seq(
             '{',
-            repeat($.definition),
+            field('child', repeat($.definition)),
             '}',
-        ),
+        )),
 
         definition: $ => seq(
             field('id', $.identifier),
@@ -24,10 +24,10 @@ module.exports = grammar({
         ),
 
         func_def: $ => seq(
-            '(',
-            ')',
+            optional(seq('(', ')')),
             '{',
-            repeat($.command),
+            field('commands', repeat($.command)),
+            optional(field('return', $._expr)),
             '}',
         ),
 
