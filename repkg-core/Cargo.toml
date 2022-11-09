@@ -1,6 +1,6 @@
 [package]
 name = "repkg-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # Preferably this would be a dynamic library, but cargo does not have a decent way to do this, so for now
@@ -16,3 +16,12 @@ flate2 = "1.0.24"
 seahash = { version = "4.1.0", features = ["use_std"] }
 directories = "4.0.1"
 copy_dir = "0.1.2"
+reqwest = {version = "0.11.12", features = ["json"]}
+url = "2.3.1"
+serde = { version = "1.0.147", features = ["derive"] }
+serde_json = "1.0.87"
+
+[features]
+full = ["client", "server"]
+client = []
+server = []
