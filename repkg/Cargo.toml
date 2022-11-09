@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.19", features = ["derive"] }
-repkg-core = { version = "0.1.0", path = "../repkg-core" }
+repkg-core = { path = "../repkg-core" }
 miette = { workspace = true, features = ["fancy"] }
 thiserror = { workspace = true }
 directories = "4.0.1"
