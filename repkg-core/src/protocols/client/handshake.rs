@@ -18,7 +18,7 @@ pub enum Error {
 /// Handshake protocol, to ensure both client and server are running compatible versions
 /// of repkg, and potentially for encryption (future).
 pub async fn handshake(url: Url) -> Result<()> {
-    url.join("api/handshake").map_err(ParseError)?;
+    let url = url.join("api/handshake").map_err(ParseError)?;
     let res = reqwest::get(url).await.map_err(RequestError)?;
     let hs_res = res
         .json::<HandshakeResponse>()
