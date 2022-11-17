@@ -188,7 +188,6 @@ impl VM {
                 .collect();
             let vm = VM::init();
             let result = vm.run_func(obj, &path, &args, imports)?;
-            dbg!(result);
         }
 
         Ok(())
