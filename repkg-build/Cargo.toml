@@ -24,4 +24,5 @@ tokio = { workspace = true }
 
 [features]
 recar = ["fancy", "dep:dialoguer", "dep:pretty-bytes"]
+# Should only be used when running this binary stand-alone
 fancy = ["miette/fancy"]
