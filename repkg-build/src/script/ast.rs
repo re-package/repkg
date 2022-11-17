@@ -204,7 +204,7 @@ impl ASTBuilder {
                     let str_frag = self.node_to_string(&child)?;
                     string.push_str(&str_frag);
                 }
-                dbg!(&string);
+                let string = string[1..string.chars().count() - 2].to_string();
                 Value::new(
                     node.byte_range(),
                     ValueType::String(string),

@@ -58,7 +58,6 @@ impl VM {
 
                 for import in &imports {
                     // TODO: better errors
-                    dbg!(&import.url);
                     protocols::client::handshake::handshake(import.url.parse().unwrap()).await?;
                 }
 
