@@ -10,6 +10,7 @@ use thiserror::Error;
 pub mod artifacts;
 pub mod fs_util;
 pub mod install;
+#[cfg(feature = "protocols")]
 pub mod protocols;
 pub mod registry;
 pub mod repository;

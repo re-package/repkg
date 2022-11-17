@@ -4,7 +4,8 @@ use miette::Result;
 use repkg_build::script::{ast::ASTBuilder, vm::VM, Value, ValueType};
 use tree_sitter::Parser;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // let cli = Cli::parse();
     // repkg_build::run(cli)
 
@@ -31,7 +32,7 @@ fn main() -> Result<()> {
         text.clone(),
         ffi_name.clone(),
     ))?;
-    vm.build(&out)?;
+    vm.build(&out).await?;
 
     Ok(())
 }

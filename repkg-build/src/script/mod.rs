@@ -48,7 +48,7 @@ pub enum ValueType {
 #[derive(Debug, Clone)]
 pub struct Import {
     name: String,
-    _url: String,
+    url: String,
 }
 
 #[derive(Debug, Clone)]

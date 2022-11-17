@@ -2,15 +2,10 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 #[cfg(feature = "client")]
-mod client;
+pub mod client;
 mod handshake;
 #[cfg(feature = "server")]
-mod server;
-
-#[cfg(feature = "client")]
-pub use client::*;
-#[cfg(feature = "server")]
-pub use server::*;
+pub mod server;
 
 #[derive(Error, Diagnostic, Debug)]
 pub enum Error {

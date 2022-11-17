@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.18", features = ["derive"] }
-repkg-core = { path = "../repkg-core" }
+repkg-core = { path = "../repkg-core", features = ["client"] }
 miette = { workspace = true }
 toml = "0.5.9"
 serde = { version = "1.0.147", features = ["derive"] }
@@ -20,6 +20,7 @@ dialoguer = { version = "0.10.2", optional = true }
 pretty-bytes = { version = "0.2.2", optional = true }
 tree-sitter = "0.20.9"
 tree-sitter-repkg = { version = "0.0.1", path = "../tree-sitter-repkg" }
+tokio = { workspace = true }
 
 [features]
 recar = ["fancy", "dep:dialoguer", "dep:pretty-bytes"]

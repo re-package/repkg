@@ -12,10 +12,11 @@ miette = { workspace = true }
 serde = { version = "1.0.147", features = ["derive"] }
 surrealdb = "1.0.0-beta.8"
 thiserror = { workspace = true }
-tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { workspace = true }
 toml = "0.5.9"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
+repkg-core = { path = "../repkg-core", features = ["server"] }
 
 [features]
 fancy = ["miette/fancy"]

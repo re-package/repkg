@@ -23,5 +23,6 @@ serde_json = "1.0.87"
 
 [features]
 full = ["client", "server"]
-client = []
-server = []
+client = ["protocols"]
+server = ["protocols"]
+protocols = []

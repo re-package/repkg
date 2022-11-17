@@ -1,3 +1,4 @@
+mod api;
 pub mod db;
 pub mod schema;
 
@@ -129,7 +130,12 @@ COMMIT TRANSACTION;
 }
 
 pub async fn app() -> Router {
-    Router::new().route("/", get(|| async { "Hello, World!" }))
+    Router::new()
+        .route("/", get(|| async { "Hello, World!" }))
+        .nest(
+            "/api",
+            Router::new().route("/handshake", get(api::handshake)),
+        )
 }
 
 async fn shutdown_signal() {

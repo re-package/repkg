@@ -204,6 +204,7 @@ impl ASTBuilder {
                     let str_frag = self.node_to_string(&child)?;
                     string.push_str(&str_frag);
                 }
+                dbg!(&string);
                 Value::new(
                     node.byte_range(),
                     ValueType::String(string),

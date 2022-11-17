@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, rc::Rc};
 
 use miette::{bail, Diagnostic, NamedSource, Result, SourceSpan};
+use repkg_core::protocols;
 use thiserror::Error;
 
 use super::{
@@ -46,7 +47,7 @@ impl VM {
         Ok(self)
     }
 
-    pub fn build(&self, object: &Value) -> Result<()> {
+    pub async fn build(&self, object: &Value) -> Result<()> {
         match &object.val {
             ValueType::Object(vars) => {
                 let imports = if let Some(imports) = vars.get("imports") {
@@ -54,6 +55,12 @@ impl VM {
                 } else {
                     vec![]
                 };
+
+                for import in &imports {
+                    // TODO: better errors
+                    dbg!(&import.url);
+                    protocols::client::handshake::handshake(import.url.parse().unwrap()).await?;
+                }
 
                 if let Some(build) = vars.get("build") {
                     match &build.val {
@@ -128,7 +135,7 @@ impl VM {
 
                     imports.push(Import {
                         name: name.clone(),
-                        _url: url,
+                        url,
                     })
                 }
             }
@@ -202,7 +209,7 @@ impl VM {
                 val.clone()
             } else {
                 let mut out = None;
-                for Import { name, _url } in imports {
+                for Import { name, url: _url } in imports {
                     if name == part {
                         out = Some(Value::new(
                             0..0,
