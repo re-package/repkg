@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, rc::Rc};
 
 use miette::{bail, Diagnostic, NamedSource, Result, SourceSpan};
-use repkg_core::protocols;
+use repkg_core::protocols::{self, get_package::GetPackageRequest};
 use thiserror::Error;
 
 use super::{
@@ -178,16 +178,22 @@ impl VM {
     ) -> Result<()> {
         let path = self.handle_path(&cmd.path, imports, obj)?;
 
-        if cmd.args.len() == 0 {
-            // Add as dependency
-            todo!()
-        } else {
+        // TODO: Add as dependency
+        let name = cmd.path.last().unwrap();
+        let request = GetPackageRequest {
+            name,
+            version: todo!(),
+            branch: todo!(),
+            namespace: None,
+        };
+
+        if !cmd.args.is_empty() {
             let args = args
                 .iter()
                 .map(|x| if x == "$" { args.join(" ") } else { x.clone() })
                 .collect();
             let vm = VM::init();
-            let result = vm.run_func(obj, &path, &args, imports)?;
+            let _result = vm.run_func(obj, &path, &args, imports)?;
         }
 
         Ok(())

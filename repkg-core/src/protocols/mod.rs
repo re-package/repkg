@@ -1,9 +1,11 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
+pub mod get_package;
+mod handshake;
+
 #[cfg(feature = "client")]
 pub mod client;
-mod handshake;
 #[cfg(feature = "server")]
 pub mod server;
 
